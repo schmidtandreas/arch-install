@@ -71,14 +71,10 @@ source "$SCRIPT_CONF"
 #    F U N C T I O N S
 # =================================================================================
 
-doCopyToChroot() {
-	local CHROOT_SCRIPT_PATH="/mnt/root/$(basename "$SCRIPT_PATH")"
-	if [ ! -d "$CHROOT_SCRIPT_PATH" ]; then
-		mkdir -p "$CHROOT_SCRIPT_PATH"
+doBindToChroot() {
+	local CHROOT_SCRIPT_PATH="$SCRIPT_PATH"
 
-		cp -p "${BASH_SOURCE[0]}" "$CHROOT_SCRIPT_PATH"
-		cp -p "$SCRIPT_CONF" "$CHROOT_SCRIPT_PATH"
-	fi
+	mount --bind $CHROOT_SCRIPT_PATH /mnt/root || doErrorExit "Bind %s to /mnt/root failed" $CHROOT_SCRIPT_PATH
 }
 
 doChroot() {
@@ -86,13 +82,6 @@ doChroot() {
 	local IN_CHROOT_SCRIPT_CONF="$IN_CHROOT_SCRIPT_PATH/$(basename "$SCRIPT_CONF")"
 
 	arch-chroot /mnt /usr/bin/bash -c "'$IN_CHROOT_SCRIPT_PATH/$SCRIPT_FILE' -c '$IN_CHROOT_SCRIPT_CONF' $*"
-}
-
-doRemoveFromChroot() {
-	local CHROOT_SCRIPT_PATH="/mnt/root/$(basename "$SCRIPT_PATH")"
-	if [ -d "$CHROOT_SCRIPT_PATH" ]; then
-		rm -r "$CHROOT_SCRIPT_PATH"
-	fi
 }
 
 doCopyToSu() {
@@ -1089,8 +1078,7 @@ doInstallPackageSets() {
 }
 
 doUnmount() {
-	umount "$BOOT_DEVICE"
-	umount "$ROOT_DEVICE"
+	umount -R /mnt
 	swapoff "$SWAP_DEVICE"
 }
 
@@ -1130,9 +1118,8 @@ case "$INSTALL_TARGET" in
 
 		[ "$OPTIMIZE_FSTAB_NOATIME" == "yes" ] && doOptimizeFstabNoatime
 
-		doCopyToChroot
+		doBindToChroot
 		doChroot chroot
-		[ "$INSTALL_REMOVE_FROM_CHROOT" == "yes" ] && doRemoveFromChroot
 
 		doPrint "Flushing - this might take a while..."
 		doFlush
