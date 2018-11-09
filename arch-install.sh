@@ -35,7 +35,7 @@ while getopts :hc: opt; do
 			;;
 
 		c)
-			SCRIPT_CONF="$OPTARG"
+			CONF_FILE="$OPTARG"
 			;;
 
 		:)
@@ -58,13 +58,11 @@ INSTALL_TARGET="$1"
 shift
 INSTALL_OPTIONS="$*"
 
-[ -z "$SCRIPT_CONF" ] && SCRIPT_CONF="$SCRIPT_PATH/$SCRIPT_NAME.conf"
+[ -z "$CONF_FILE" ] && CONF_FILE="$SCRIPT_PATH/$SCRIPT_NAME.csv"
 
 [ ! -f "$CONF_FILE" ] && doErrorExit "Config file not found ('%s')" "$CONF_FILE"
 
 [ -z "$INSTALL_TARGET" ] && INSTALL_TARGET="base"
-
-source "$SCRIPT_CONF"
 
 # =================================================================================
 #    F U N C T I O N S
@@ -77,10 +75,10 @@ doBindToChroot() {
 }
 
 doChroot() {
-	local IN_CHROOT_SCRIPT_PATH="/root/$(basename "$SCRIPT_PATH")"
-	local IN_CHROOT_SCRIPT_CONF="$IN_CHROOT_SCRIPT_PATH/$(basename "$SCRIPT_CONF")"
+	local IN_CHROOT_SCRIPT_PATH="/root"
+	local IN_CHROOT_CONF_FILE="$IN_CHROOT_SCRIPT_PATH/$(basename "$CONF_FILE")"
 
-	arch-chroot /mnt /usr/bin/bash -c "'$IN_CHROOT_SCRIPT_PATH/$SCRIPT_FILE' -c '$IN_CHROOT_SCRIPT_CONF' $*"
+	arch-chroot /mnt /usr/bin/bash -c "'$IN_CHROOT_SCRIPT_PATH/$SCRIPT_FILE' -c '$IN_CHROOT_CONF_FILE' $*" || doErrorExit "Chroot failed"
 }
 
 doCopyToSu() {
