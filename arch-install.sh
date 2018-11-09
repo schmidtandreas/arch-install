@@ -398,9 +398,7 @@ __END__
 }
 
 doDisableIpv6() {
-	cat > /etc/sysctl.d/40-ipv6.conf << __END__
-ipv6.disable_ipv6=1
-__END__
+	echo "ipv6.disable_ipv6=1" > /etc/sysctl.d/40-ipv6.conf
 }
 
 doInstallWirelessUtils() {
