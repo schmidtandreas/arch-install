@@ -147,9 +147,10 @@ doConfirmInstall() {
 	fi
 
 	for i in {10..1}; do
-		doPrint "Starting in $i - Press CTRL-C to abort..."
+		printf "Starting in $i - Press CTRL-C to abort...\r"
 		sleep 1
 	done
+	printf "\n"
 }
 
 doDeactivateAllSwaps() {
