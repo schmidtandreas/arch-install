@@ -1117,6 +1117,24 @@ doLoadCvsDataConfig() {
 	done < $CONF_FILE
 }
 
+doLoadCvsDataAll() {
+	PACKAGES=()
+	SERVICES=()
+	AUR_PACKAGES=()
+	GIT_PROJECTS=()
+
+	while IFS=, read -r tag val1 val2; do
+		case "$tag" in
+		"C") doSetConfVariable "$val1" "$val2";;
+		"CA") doSetConfArray "$val1" "$val2";;
+		"P") PACKAGES+=("$val1")
+		"S") SERVICES+=("$val1")
+		"A") AUR_PACKAGES+=("$val1")
+		"G") GIT_PROJECTS+=("$val1")
+		esac
+	done < $CONF_FILE
+}
+
 doCheckInstallDeviceIsSsd() {
 	INSTALL_DEVICE_PATH="$(dirname "$INSTALL_DEVICE")"
 	INSTALL_DEVICE_FILE="$(basename "$INSTALL_DEVICE")"
@@ -1181,6 +1199,8 @@ case "$INSTALL_TARGET" in
 		;;
 
 	chroot)
+		doLoadCvsDataAll
+
 		doCheckInstallDeviceIsSsd
 
 		doSetHostname "$HOSTNAME"
