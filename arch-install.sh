@@ -369,7 +369,8 @@ __END__
 }
 
 doSetTimezone() {
-	ln -sf "/usr/share/zoneinfo/$1" /etc/localtime
+	[ -L /etc/localtime ] && rm -rf /etc/localtime
+	ln -sf "/usr/share/zoneinfo/$1" /etc/localtime || doErrorExit "Create timezone link failed"
 }
 
 doEnableLocales() {
