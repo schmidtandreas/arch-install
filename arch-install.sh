@@ -401,16 +401,6 @@ doDisableIpv6() {
 	echo "ipv6.disable_ipv6=1" > /etc/sysctl.d/40-ipv6.conf
 }
 
-doInstallWirelessUtils() {
-	pacman -S --noconfirm --needed \
-		crda \
-		dialog \
-		iw \
-		libnl \
-		wireless-regdb \
-		wpa_supplicant
-}
-
 doEditMkinitcpioLuks() {
 	# default: HOOKS="base udev autodetect modconf block filesystems keyboard fsck"
 	cat /etc/mkinitcpio.conf | sed -e 's/^\(\(HOOKS=\)\(.*\)\)$/#\1\n\2\3/' > /tmp/mkinitcpio.conf
@@ -1201,8 +1191,6 @@ case "$INSTALL_TARGET" in
 		doSetConsole "$CONSOLE_KEYMAP" "$CONSOLE_FONT"
 
 		[ "$DISABLE_IPV6" == "yes" ] && doDisableIpv6
-
-		[ "$INSTALL_WIRELESS_UTILS" == "yes" ] && doInstallWirelessUtils
 
 		[ "$LVM_ON_LUKS" == "yes" ] && doEditMkinitcpioLuks
 
