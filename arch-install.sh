@@ -397,10 +397,6 @@ FONT=$2
 __END__
 }
 
-doEnableServiceDhcpcd() {
-	systemctl enable dhcpcd.service
-}
-
 doDisableIpv6() {
 	cat > /etc/sysctl.d/40-ipv6.conf << __END__
 ipv6.disable_ipv6=1
@@ -1209,8 +1205,6 @@ case "$INSTALL_TARGET" in
 		doSetHwclock
 
 		doSetConsole "$CONSOLE_KEYMAP" "$CONSOLE_FONT"
-
-		[ "$ENABLE_SERVICE_DHCPCD" == "yes" ] && doEnableServiceDhcpcd
 
 		[ "$DISABLE_IPV6" == "yes" ] && doDisableIpv6
 
