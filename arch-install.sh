@@ -326,7 +326,9 @@ doMount() {
 }
 
 doPacstrap() {
-	pacstrap /mnt base
+	BASE_DEVEL=""
+	[ "$INSTALL_BASE_DEVEL" == "yes" ] && BASE_DEVEL="base-devel"
+	pacstrap /mnt base $BASE_DEVEL || doErrorExit "Installation of Arch Linux base failed"
 
 	doFlush
 }
