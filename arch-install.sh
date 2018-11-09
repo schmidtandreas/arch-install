@@ -372,15 +372,9 @@ doSetTimezone() {
 	ln -sf "/usr/share/zoneinfo/$1" /etc/localtime
 }
 
-doEnableLocale() {
-	cat /etc/locale.gen | sed -e 's/^#\('"$1"'\)\s*$/\1/' > /tmp/locale.gen
-	cat /tmp/locale.gen > /etc/locale.gen
-	rm /tmp/locale.gen
-}
-
 doEnableLocales() {
-	for i in "$@"; do
-		doEnableLocale "$i"
+	for L in "$@"; do
+		sed -i -e 's|^#\('"$L"'\)\s*$|\1|' /etc/locale.gen
 	done
 }
 
