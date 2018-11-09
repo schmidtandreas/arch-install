@@ -363,9 +363,7 @@ doOptimizeFstabNoatime() {
 }
 
 doSetHostname() {
-	cat > /etc/hostname << __END__
-$1
-__END__
+	echo "$1" > /etc/hostname
 }
 
 doSetTimezone() {
