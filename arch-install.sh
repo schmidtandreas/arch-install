@@ -382,9 +382,7 @@ doGenerateLocales() {
 }
 
 doSetLocaleLang() {
-	cat > /etc/locale.conf << __END__
-LANG=$1
-__END__
+	echo "LANG=$1" > /etc/locale.conf
 }
 
 doSetConsole() {
