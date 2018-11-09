@@ -192,7 +192,9 @@ doCreateNewPartitionTable() {
 }
 
 doCreateNewPartitions() {
-	local START="1"; local END="$BOOT_SIZE"
+	local START="1";
+	local END="$BOOT_SIZE"
+
 	case "$BOOT_FILESYSTEM" in
 		fat32)
 			parted -s -a optimal "$INSTALL_DEVICE" mkpart primary "$BOOT_FILESYSTEM" "${START}MiB" "${END}MiB"
@@ -311,16 +313,16 @@ doMount() {
 		SSD_DISCARD=" -o discard"
 	fi
 
-	mount$SSD_DISCARD "$ROOT_DEVICE" /mnt
-	mkdir /mnt/boot
-	mount$SSD_DISCARD "$BOOT_DEVICE" /mnt/boot
+	mount $SSD_DISCARD "$ROOT_DEVICE" /mnt
+	[ ! -d /mnt/boot ] && mkdir /mnt/boot
+	mount $SSD_DISCARD "$BOOT_DEVICE" /mnt/boot
 
 	SSD_DISCARD=""
 	if [ "$INSTALL_DEVICE_IS_SSD" == "yes" ] && [ "$INSTALL_DEVICE_SSD_DISCARD" == "yes" ]; then
 		SSD_DISCARD=" --discard"
 	fi
 
-	swapon$SSD_DISCARD "$SWAP_DEVICE"
+	swapon $SSD_DISCARD "$SWAP_DEVICE"
 }
 
 doPacstrap() {
