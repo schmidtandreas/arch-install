@@ -292,11 +292,11 @@ doDetectDevicesLuksLvm() {
 doMkfs() {
 	case "$1" in
 		fat32)
-			mkfs -t fat -F 32 -n "$2" "$3"
+			mkfs -t fat -F 32 -n "$2" "$3" || doErrorExit "Create FAT32 filesystem on %s failed" "$3"
 			;;
 
 		*)
-			mkfs -t "$1" -L "$2" "$3"
+			mkfs -t "$1" -L "$2" "$3" || doErrorExit "Create %s filesystem on %s failed" "$1" "$3"
 			;;
 	esac
 }
