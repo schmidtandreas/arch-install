@@ -1087,12 +1087,24 @@ doUnmount() {
 	swapoff "$SWAP_DEVICE"
 }
 
+doCheckInstallDeviceIsSsd() {
+	INSTALL_DEVICE_PATH="$(dirname "$INSTALL_DEVICE")"
+	INSTALL_DEVICE_FILE="$(basename "$INSTALL_DEVICE")"
+
+	if [ "$(cat "/sys/block/$INSTALL_DEVICE_FILE/queue/rotational")" == "0" ]; then
+		INSTALL_DEVICE_IS_SSD="yes"
+	else
+		INSTALL_DEVICE_IS_SSD="no"
+	fi
+}
+
 # =================================================================================
 #    M A I N
 # =================================================================================
 
 case "$INSTALL_TARGET" in
 	base)
+		doCheckInstallDeviceIsSsd
 		doCheckInstallDevice
 
 		doConfirmInstall
@@ -1137,6 +1149,8 @@ case "$INSTALL_TARGET" in
 		;;
 
 	chroot)
+		doCheckInstallDeviceIsSsd
+
 		doSetHostname "$HOSTNAME"
 		doSetTimezone "$TIMEZONE"
 
