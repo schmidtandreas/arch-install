@@ -333,7 +333,7 @@ doPacstrap() {
 }
 
 doGenerateFstab() {
-	genfstab -p -U /mnt >> /mnt/etc/fstab
+	genfstab -p -U /mnt >> /mnt/etc/fstab || doErrorExit "Create fstab failed"
 
 	if isInstallDeviceSsdAndDiscard; then
 		sed -i -e 's/\(data=ordered\)/\1,discard/' /mnt/etc/fstab
