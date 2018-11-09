@@ -676,16 +676,14 @@ doInstallSudo() {
 }
 
 doEnableMultilib() {
-	cat /etc/pacman.conf | sed -e '/^#\[multilib\]$/ {
-			N; /\n#Include/ {
-				s/^#//
-				s/\n#/\n/
-			}
-		}' > /tmp/pacman.conf
-	cat /tmp/pacman.conf > /etc/pacman.conf
-	rm /tmp/pacman.conf
+	if [ -z "$(cat /etc/pacman.conf | grep "#\[multilib\]")" ]; then
+		sed -i "s|^#\(\[multilib\]\)$|\1|" /etc/pacman.conf
+		sed -i "/^\[multilib\]$/{n;s/^#\(.*\)$/\1/}" /etc/pacman.conf
+	fi
 
 	pacman -Syu --noconfirm --needed
+
+	[ "$ENABLE_MULTILIB" == "yes" ] && pacman -S --noconfirm --needed $(pacman -Sqg multilib-devel)
 }
 
 doInstallDevel() {
