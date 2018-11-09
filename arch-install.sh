@@ -254,6 +254,10 @@ doDetectDevicesLuks() {
 	LUKS_DEVICE="$INSTALL_DEVICE_PATH/${ALL_PARTITIONS[1]}"
 }
 
+isInstallDeviceSsdAndDiscard() {
+	[ "$INSTALL_DEVICE_IS_SSD" == "yes" -a "$INSTALL_DEVICE_SSD_DISCARD" == "yes" ]
+}
+
 doCreateLuks() {
 	doPrint "Formatting LUKS device"
 	local EXIT="1"
@@ -263,9 +267,8 @@ doCreateLuks() {
 	done
 
 	local SSD_DISCARD=""
-	if [ "$INSTALL_DEVICE_IS_SSD" == "yes" ] && [ "$INSTALL_DEVICE_SSD_DISCARD" == "yes" ]; then
-		SSD_DISCARD=" --allow-discards"
-	fi
+
+	isInstallDeviceSsdAndDiscard && SSD_DISCARD=" --allow-discards"
 
 	doPrint "Opening LUKS device"
 	EXIT="1"
@@ -309,18 +312,14 @@ doFormat() {
 
 doMount() {
 	local SSD_DISCARD=""
-	if [ "$INSTALL_DEVICE_IS_SSD" == "yes" ] && [ "$INSTALL_DEVICE_SSD_DISCARD" == "yes" ]; then
-		SSD_DISCARD=" -o discard"
-	fi
+	isInstallDeviceSsdAndDiscard && SSD_DISCARD="-o discard"
 
 	mount $SSD_DISCARD "$ROOT_DEVICE" /mnt
 	[ ! -d /mnt/boot ] && mkdir /mnt/boot
 	mount $SSD_DISCARD "$BOOT_DEVICE" /mnt/boot
 
 	SSD_DISCARD=""
-	if [ "$INSTALL_DEVICE_IS_SSD" == "yes" ] && [ "$INSTALL_DEVICE_SSD_DISCARD" == "yes" ]; then
-		SSD_DISCARD=" --discard"
-	fi
+	isInstallDeviceSsdAndDiscard && SSD_DISCARD="--discard"
 
 	swapon $SSD_DISCARD "$SWAP_DEVICE"
 }
@@ -336,14 +335,9 @@ doPacstrap() {
 doGenerateFstab() {
 	genfstab -p -U /mnt >> /mnt/etc/fstab
 
-	if [ "$INSTALL_DEVICE_IS_SSD" == "yes" ] && [ "$INSTALL_DEVICE_SSD_DISCARD" == "yes" ]; then
-		cat /mnt/etc/fstab | sed -e 's/\(data=ordered\)/\1,discard/' > /tmp/fstab
-		cat /tmp/fstab > /mnt/etc/fstab
-		rm /tmp/fstab
-
-		cat /mnt/etc/fstab | sed -e 's/\(swap\s*defaults\)/\1,discard/' > /tmp/fstab
-		cat /tmp/fstab > /mnt/etc/fstab
-		rm /tmp/fstab
+	if isInstallDeviceSsdAndDiscard; then
+		sed -i -e 's/\(data=ordered\)/\1,discard/' /mnt/etc/fstab
+		sed -i -e 's/\(swap\s*defaults\)/\1,discard/' /mnt/etc/fstab
 	fi
 }
 
@@ -503,9 +497,7 @@ doDetectLuksUuid() {
 
 doEditGrubConfigLuks() {
 	local SSD_DISCARD
-	if [ "$INSTALL_DEVICE_IS_SSD" == "yes" ] && [ "$INSTALL_DEVICE_SSD_DISCARD" == "yes" ]; then
-		SSD_DISCARD=":allow-discards"
-	fi
+	isInstallDeviceSsdAndDiscard && SSD_DISCARD=":allow-discards"
 
 	cat /etc/default/grub | sed -e 's/^\(\(GRUB_CMDLINE_LINUX_DEFAULT=\)\(.*\)\)$/#\1\n\2\3/' > /tmp/default-grub
 	cat /tmp/default-grub | awk 'm = $0 ~ /^GRUB_CMDLINE_LINUX_DEFAULT=/ {
@@ -569,9 +561,7 @@ __END__
 
 doCreateGummibootEntryLuks() {
 	local SSD_DISCARD=""
-	if [ "$INSTALL_DEVICE_IS_SSD" == "yes" ] && [ "$INSTALL_DEVICE_SSD_DISCARD" == "yes" ]; then
-		SSD_DISCARD=":allow-discards"
-	fi
+	isInstallDeviceSsdAndDiscard && SSD_DISCARD=":allow-discards"
 
 	cat > /boot/loader/entries/default.conf << __END__
 title Arch Linux
@@ -592,9 +582,7 @@ __END__
 
 doCreateCrypttabLuks() {
 	local SSD_DISCARD=""
-	if [ "$INSTALL_DEVICE_IS_SSD" == "yes" ] && [ "$INSTALL_DEVICE_SSD_DISCARD" == "yes" ]; then
-		SSD_DISCARD=",discard"
-	fi
+	isInstallDeviceSsdAndDiscard && SSD_DISCARD=",discard"
 
 	cat > /etc/crypttab << __END__
 $LUKS_LVM_NAME UUID=$LUKS_UUID none luks$SSD_DISCARD
