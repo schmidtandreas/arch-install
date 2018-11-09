@@ -8,6 +8,13 @@ SCRIPT_NAME="${SCRIPT_FILE%.*}"
 #    C O M M O N   F U N C T I O N S
 # =================================================================================
 
+doTrim() {
+	local TRIMMED="$1"
+	TRIMMED="${TRIMMED## }"
+	TRIMMED="${TRIMMED%% }"
+	echo "$TRIMMED"
+}
+
 doPrintPrompt() {
 	printf "[%s] $*" "$SCRIPT_NAME"
 }
