@@ -1087,6 +1087,36 @@ doUnmount() {
 	swapoff "$SWAP_DEVICE"
 }
 
+doSetConfVariable() {
+	local VAR_NAME="$(doTrim $1)"
+	[ -z "$VAR_NAME" ] && doErrorExit "Invalid variable name"
+	shift
+	declare -g "$VAR_NAME"="$@"
+}
+
+doSetConfArray() {
+	local VAR_NAME="$(doTrim $1)"
+	[ -z "$VAR_NAME" ] && doErrorExit "Invalid array variable name"
+	shift
+	declare -g -a "$VAR_NAME"
+
+	local IFS=\;
+	local I=0
+	for VAL in $@; do
+		declare -g "$VAR_NAME[$I]"="$VAL"
+		I=$((I + 1))
+	done
+}
+
+doLoadCvsDataConfig() {
+	while IFS=, read -r tag val1 val2; do
+		case "$tag" in
+		"C") doSetConfVariable "$val1" "$val2";;
+		"CA") doSetConfArray "$val1" "$val2";;
+		esac
+	done < $CONF_FILE
+}
+
 doCheckInstallDeviceIsSsd() {
 	INSTALL_DEVICE_PATH="$(dirname "$INSTALL_DEVICE")"
 	INSTALL_DEVICE_FILE="$(basename "$INSTALL_DEVICE")"
@@ -1104,6 +1134,8 @@ doCheckInstallDeviceIsSsd() {
 
 case "$INSTALL_TARGET" in
 	base)
+		doLoadCvsDataConfig
+
 		doCheckInstallDeviceIsSsd
 		doCheckInstallDevice
 
