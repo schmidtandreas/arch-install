@@ -385,6 +385,11 @@ doSetLocaleLang() {
 	echo "LANG=$1" > /etc/locale.conf
 }
 
+doSetHwclock() {
+	doPrint "Set RTC time to \"%s\"" "$(date)"
+	hwclock --systohc --utc
+}
+
 doSetConsole() {
 	cat > /etc/vconsole.conf << __END__
 KEYMAP=$1
@@ -1200,6 +1205,8 @@ case "$INSTALL_TARGET" in
 		doEnableLocales "${GENERATE_LOCALES[@]}"
 		doGenerateLocales
 		doSetLocaleLang "$LOCALE_LANG"
+
+		doSetHwclock
 
 		doSetConsole "$CONSOLE_KEYMAP" "$CONSOLE_FONT"
 
