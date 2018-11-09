@@ -526,7 +526,7 @@ $EFI_STARTUP_NSH
 __END__
 }
 
-doInstallGummiboot() {
+doInstallSystemDBoot() {
 	pacman -S --noconfirm --needed \
 		dosfstools \
 		efibootmgr
@@ -534,7 +534,7 @@ doInstallGummiboot() {
 	bootctl --path=/boot install
 }
 
-doCreateGummibootEntry() {
+doCreateSystemDBootEntry() {
 	cat > /boot/loader/entries/default.conf << __END__
 title Arch Linux
 linux /vmlinuz-linux
@@ -552,14 +552,14 @@ options quiet root=UUID=$ROOT_UUID rw$IO_SCHEDULER_KERNEL$FSCK_MODE
 __END__
 }
 
-doCreateGummibootConfig() {
+doCreateSystemDBootConfig() {
 	cat > /boot/loader/loader.conf << __END__
 default default
 timeout 5
 __END__
 }
 
-doCreateGummibootEntryLuks() {
+doCreateSystemDBootEntryLuks() {
 	local SSD_DISCARD=""
 	isInstallDeviceSsdAndDiscard && SSD_DISCARD=":allow-discards"
 
@@ -1192,10 +1192,10 @@ case "$INSTALL_TARGET" in
 							doGenerateGrubConfig
 							;;
 
-						gummiboot)
-							doInstallGummiboot
-							doCreateGummibootEntryLuks
-							doCreateGummibootConfig
+						systemd-boot)
+							doInstallSystemDBoot
+							doCreateSystemDBootEntryLuks
+							doCreateSystemDBootConfig
 							;;
 					esac
 				else
@@ -1210,10 +1210,10 @@ case "$INSTALL_TARGET" in
 							doGenerateGrubConfig
 							;;
 
-						gummiboot)
-							doInstallGummiboot
-							doCreateGummibootEntry
-							doCreateGummibootConfig
+						systemd-boot)
+							doInstallSystemDBoot
+							doCreateSystemDBootEntry
+							doCreateSystemDBootConfig
 							;;
 					esac
 				fi
