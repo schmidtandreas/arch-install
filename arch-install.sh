@@ -49,7 +49,6 @@ while getopts :hc: opt; do
 
 		\?)
 			doErrorExit "Invalid option ('-%s')" "$OPTARG"
-			exit 1
 			;;
 	esac
 done
