@@ -1101,10 +1101,10 @@ doLoadCvsDataAll() {
 		case "$tag" in
 		"C") doSetConfVariable "$val1" "$val2";;
 		"CA") doSetConfArray "$val1" "$val2";;
-		"P") PACKAGES+=("$val1")
-		"S") SERVICES+=("$val1")
-		"A") AUR_PACKAGES+=("$val1")
-		"G") GIT_PROJECTS+=("$val1")
+		"P") PACKAGES+=("$val1");;
+		"S") SERVICES+=("$val1");;
+		"A") AUR_PACKAGES+=("$val1");;
+		"G") GIT_PROJECTS+=("$val1");;
 		esac
 	done < $CONF_FILE
 }
