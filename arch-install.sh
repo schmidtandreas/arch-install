@@ -91,7 +91,7 @@ doBindToChroot() {
 
 doChroot() {
 	local IN_CHROOT_SCRIPT_PATH="/root"
-	local IN_CHROOT_CONF_FILE="$IN_CHROOT_SCRIPT_PATH/$(basename "$CONF_FILE")"
+	local IN_CHROOT_CONF_FILE="$IN_CHROOT_SCRIPT_PATH/$CONF_FILE"
 
 	arch-chroot /mnt /usr/bin/bash -c "'$IN_CHROOT_SCRIPT_PATH/$SCRIPT_FILE' -c '$IN_CHROOT_CONF_FILE' $*" || doErrorExit "Chroot failed"
 }
