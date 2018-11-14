@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 
+START_PATH=$(pwd)
 SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_FILE="$(basename "${BASH_SOURCE[0]}")"
 SCRIPT_NAME="${SCRIPT_FILE%.*}"
+
+AUR_PACKAGE_QUERY_URL="https://aur.archlinux.org/package-query.git"
+AUR_YAOURT_URL="https://aur.archlinux.org/yaourt.git"
 
 # =================================================================================
 #    C O M M O N   F U N C T I O N S
@@ -20,129 +24,235 @@ doPrintPrompt() {
 }
 
 doPrint() {
-	doPrintPrompt "$*\n"
+	doPrintPrompt "$*\\n"
 }
 
 doPrintHelpMessage() {
-	printf "Usage: ./%s [-h] [-c config] [target [options...]]\n" "$SCRIPT_FILE"
+	printf "Usage: ./%s [-h] [-c config] [target]\\n" "$SCRIPT_FILE"
 }
 
 doErrorExit() {
 	if [ $# -gt 0 ]; then
-		FMT="$1"
+		FMT="ERROR: $1\\n"
 		shift
-		printf "ERROR: $FMT\n" $@
+		# shellcheck disable=SC2059 # FMT is a format string
+		printf "$FMT" "$@"
 	else
-		printf "ERROR: Unknown error\n"
+		printf "ERROR: Unknown error\\n"
 	fi
+
+	cd "$START_PATH" || doErrorExit "Change directory to '%s' failed" "$START_PATH"
 	exit 1
 }
 
-# =================================================================================
-#    G E T O P T S
-# =================================================================================
+isUserExists() {
+	getent passwd "$1" 1>/dev/null 2>&1 || \
+		doErrorExit "User '%s' not exists (called by: %s line: %d)" \
+			"$1" "${FUNCNAME[1]}" "${BASH_LINENO[1]}"
+}
 
-while getopts :hc: opt; do
-	case "$opt" in
-		h)
-			doPrintHelpMessage
-			exit 0
+doAsUser() {
+	local _USER="$1"
+	shift
+	isUserExists "$_USER"
+
+	sudo -u "$_USER" "$@"
+}
+
+doInstallPackages() {
+	local PACKAGES=()
+
+	IFS=" " read -ra PACKAGES <<< "$@"
+	for PACKAGE in "${PACKAGES[@]}"; do
+		if ! pacman -Qi "$PACKAGE" 1>/dev/null 2>&1; then
+			pacman -S --noconfirm --needed "$PACKAGE" || \
+				doErrorExit "Install package '%s' failed" "$PACKAGE"
+		fi
+	done
+}
+
+doInstallYaourtPackages() {
+	local _USER="$1"
+	shift
+	isUserExist "$_USER"
+	local PACKAGES=()
+	IFS=" " read -ra PACKAGES <<< "$@"
+
+	for PACKAGE in "${PACKAGES[@]}"; do
+		if ! doAsUser "$_USER" yaourt -Qi "$PACKAGE" 1>/dev/null 2>&1; then
+ 			doAsUser "$_USER" yaourt -S --noconfirm --needed "$PACKAGE" || \
+				doErrorExit "Install yaourt package '%s' failed" "$PACKAGE"
+		fi
+	done
+}
+
+doInstallYaourt() {
+	local _USER="$1"
+
+	[ -z "$AUR_PACKAGE_QUERY_URL" ] && doErrorExit "Empty package query URL"
+	[ -z "$AUR_YAOURT_URL" ] && doErrorExit "Empty yaourt URL"
+
+	isUserExists "$_USER"
+
+	doInstallPackges git
+
+	pushd /tmp || doErrorExit "Change directory to '/tmp' failed"
+
+	git clone "$AUR_PACKAGE_QUERY_URL" package-query || doErrorExit "Clone package-query failed"
+	[ ! -d ./package-query ] && doErrorExit "Clone package-query failed"
+	chown -R "$_USER":users ./package-query || doErrorExit "Change owner of package-query failed"
+	cd package-query || doErrorExit "Change directory to 'package-query' failed"
+	doAsUser "$_USER" makepkg -si --noconfirm --needed || doErrorExit "Install package-query failed"
+	cd ..
+
+	git clone "$AUR_YAOURT_URL" yaourt || doErrorExit "Clone yaourt failed"
+	[ ! -d ./yaourt ] && doErrorExit "Clone yaourt failed"
+	chown -R "$_USER":users ./yaourt || doErrorExit "Change owner of /tmp/yaourt failed"
+	cd yaourt || doErrorExit "Change directory to 'yaourt' failed"
+	doAsUser "$_USER" makepkg -si --noconfirm --needed || doErrorExit "Install yaourt failed"
+	cd ..
+	
+	popd || doErrorExit "Change back directory failed"
+
+	if grep -q "\\[archlinuxfr\\]" </etc/pacman.conf; then
+		cat >>/etc/pacman.conf <<__END__
+
+[archlinuxfr]
+SigLevel = Never
+Server = http://repo.archlinux.fr/\$arch
+__END__
+	fi
+
+	pacman -Sy
+}
+
+doEnableServices() {
+	for SERVICE in "$@"; do
+		systemctl enable "$SERVICE" || doErrorExit "Enable systemd service '%s' failed" "$SERVICE"
+	done
+}
+
+doSetConfVariable() {
+	local VAR_NAME=""
+
+	VAR_NAME="$(doTrim "$1")"
+	[ -z "$VAR_NAME" ] && doErrorExit "Invalid variable name"
+	shift
+	declare -g "$VAR_NAME"="$*"
+}
+
+doSetConfArray() {
+	local VAR_NAME=""
+
+	VAR_NAME="$(doTrim "$1")"
+	[ -z "$VAR_NAME" ] && doErrorExit "Invalid array variable name"
+	shift
+	declare -g -a "$VAR_NAME"
+
+	local IFS=\;
+	local I=0
+	for VAL in "$@"; do
+		declare -g "${VAR_NAME[$I]}=$VAL"
+		I=$((I + 1))
+	done
+}
+
+doMkfs() {
+	case "$1" in
+		fat32)
+			mkfs -t fat -F 32 -n "$2" "$3" || doErrorExit "Create FAT32 filesystem on %s failed" "$3"
 			;;
 
-		c)
-			CONF_FILE="$OPTARG"
-			;;
-
-		:)
-			case "$OPTARG" in
-				c)
-					doErrorExit "Missing config file"
-					;;
-			esac
-			doErrorExit
-			;;
-
-		\?)
-			doErrorExit "Invalid option ('-%s')" "$OPTARG"
+		*)
+			mkfs -t "$1" -L "$2" "$3" || doErrorExit "Create %s filesystem on %s failed" "$1" "$3"
 			;;
 	esac
-done
-shift $((OPTIND - 1))
-
-INSTALL_TARGET="$1"
-shift
-INSTALL_OPTIONS="$*"
-
-[ -z "$CONF_FILE" ] && CONF_FILE="$SCRIPT_PATH/$SCRIPT_NAME.csv"
-
-[ ! -f "$CONF_FILE" ] && doErrorExit "Config file not found ('%s')" "$CONF_FILE"
-
-[ -z "$INSTALL_TARGET" ] && INSTALL_TARGET="base"
-
-# =================================================================================
-#    F U N C T I O N S
-# =================================================================================
-
-doBindToChroot() {
-	local CHROOT_SCRIPT_PATH="$SCRIPT_PATH"
-
-	mount --bind $CHROOT_SCRIPT_PATH /mnt/root || doErrorExit "Bind %s to /mnt/root failed" $CHROOT_SCRIPT_PATH
 }
 
-doChroot() {
-	local IN_CHROOT_SCRIPT_PATH="/root"
-	local IN_CHROOT_CONF_FILE="$IN_CHROOT_SCRIPT_PATH/$CONF_FILE"
+doGetAllPartitions() {
+	local INSTALL_DEVICE_FILE=""
 
-	arch-chroot /mnt /usr/bin/bash -c "'$IN_CHROOT_SCRIPT_PATH/$SCRIPT_FILE' -c '$IN_CHROOT_CONF_FILE' $*" || doErrorExit "Chroot failed"
+	INSTALL_DEVICE_FILE="$(basename "$INSTALL_DEVICE")"
+
+	lsblk -l -n -o NAME -x NAME "$INSTALL_DEVICE" | grep "^$INSTALL_DEVICE_FILE" | grep -v "^$INSTALL_DEVICE_FILE$"
 }
 
-doCopyToSu() {
-	local SU_USER="$1"
-
-	local SU_USER_HOME="$(eval printf "~$SU_USER")"
-	local SU_SCRIPT_PATH="$SU_USER_HOME/$(basename "$SCRIPT_PATH")"
-	if [ ! -d "$SU_SCRIPT_PATH" ]; then
-		mkdir -p "$SU_SCRIPT_PATH"
-
-		cp -p "${BASH_SOURCE[0]}" "$SU_SCRIPT_PATH"
-		cp -p "$SCRIPT_CONF" "$SU_SCRIPT_PATH"
-
-		local SU_USER_GROUP="$(id -gn "$SU_USER")"
-		chown -R "$SU_USER:$SU_USER_GROUP" "$SU_SCRIPT_PATH"
-	fi
+doFlush() {
+	sync
+	sync
+	sync
 }
 
-doSu() {
-	local SU_USER="$1"
+doPartProbe() {
+	partprobe "$INSTALL_DEVICE"
+}
 
-	local SU_USER_HOME="$(eval printf "~$SU_USER")"
-	local IN_SU_SCRIPT_PATH="$SU_USER_HOME/$(basename "$SCRIPT_PATH")"
-	local IN_SU_SCRIPT_CONF="$IN_SU_SCRIPT_PATH/$(basename "$SCRIPT_CONF")"
+doDetectRootUuid() {
+	ROOT_UUID="$(blkid -o value -s UUID "$ROOT_DEVICE")"
+}
 
+doSetPassword() {
+	local PW_USER="root"
+
+	[ -n "$1" ] && PW_USER="$1"
+
+	doPrint "Setting password for user '$PW_USER'"
+	local TRIES=0
+	while [ $TRIES -lt 3 ]; do
+		passwd "$PW_USER"
+		local RET=$?
+		if [ $RET -eq 0 ]; then
+			TRIES=3
+		else
+			doPrint "Set password failed, try again"
+		fi
+		TRIES=$((TRIES + 1))
+	done
+
+	return $RET
+}
+
+setUserHomeDir() {
+	isUserExists "$1"
+	USER_HOME="$(getent passwd "$1" | cut -d : -f6)"
+	[ ! -d "$USER_HOME" ] && doErrorExit "Home directory for user '%s' not found" "$1"
+}
+
+doUserMkdir() {
+	[ -z "$USER_HOME" ] && setUserHomeDir "$1"
+	[ ! -d "$USER_HOME/$2" ] && doAsUser "$1" mkdir -p "$USER_HOME/$2"
+}
+
+doUserSetLocaleLang() {
+	local _USER=$1
 	shift
-	/bin/su "$SU_USER" -c "'$IN_SU_SCRIPT_PATH/$SCRIPT_FILE' -c '$IN_SU_SCRIPT_CONF' $*"
+	isUserExits "$_USER"
+
+	doUserMkdir "$_USER" .config
+	doAsUser "$_USER" echo "$*" >"$USER_HOME/.config/locale.conf"
 }
 
-doSuSudo() {
-	local SU_USER="$1"
+doUserCloneGitRepo() {
+	local _USER=$1
+	local _GIT_URL=$2
+	local _TARGET_DIR=$3
 
-	local SU_USER_SUDO_NOPASSWD="/etc/sudoers.d/$SU_USER"
+	isUserExists "$_USER"
 
-	cat > "$SU_USER_SUDO_NOPASSWD" << __END__
-$SU_USER ALL=(ALL) NOPASSWD: ALL
-__END__
-
-	doSu $*
-
-	rm "$SU_USER_SUDO_NOPASSWD"
+	doAsUser "$_USER" git clone "$_GIT_URL" "$_TARGET_DIR" || doErrorExit "Clone customizing git repository failed"
 }
 
-doRemoveFromSu() {
-	local SU_USER="$1"
+# =================================================================================
+#    S T E P   F U N C T I O N S   B A S E
+# =================================================================================
 
-	local SU_USER_HOME="$(eval printf "~$SU_USER")"
-	local SU_SCRIPT_PATH="$SU_USER_HOME/$(basename "$SCRIPT_PATH")"
-	[ -d "$SU_SCRIPT_PATH" ] && rm -r "$SU_SCRIPT_PATH"
+doLoadCvsDataConfig() {
+	while IFS=, read -r tag val1 val2; do
+		case "$tag" in
+		"C") doSetConfVariable "$val1" "$val2";;
+		"CA") doSetConfArray "$val1" "$val2";;
+		esac
+	done < "$CONF_FILE"
 }
 
 doCheckInstallDevice() {
@@ -162,37 +272,32 @@ doConfirmInstall() {
 	fi
 
 	for i in {10..1}; do
-		printf "Starting in $i - Press CTRL-C to abort...\r"
+		printf "Starting in %d - Press CTRL-C to abort...\\r" $i
 		sleep 1
 	done
-	printf "\n"
+	printf "\\n"
 }
 
 doDeactivateAllSwaps() {
 	swapoff -a
 }
 
-doGetAllPartitions() {
-	lsblk -l -n -o NAME -x NAME "$INSTALL_DEVICE" | grep "^$INSTALL_DEVICE_FILE" | grep -v "^$INSTALL_DEVICE_FILE$"
-}
-
-doFlush() {
-	sync
-	sync
-	sync
-}
-
 doWipeAllPartitions() {
-	for i in $( doGetAllPartitions | sort -r ); do
-		umount "$INSTALL_DEVICE_PATH/$i"
+	local INSTALL_DEVICE_PATH=""
+
+	INSTALL_DEVICE_PATH="$(dirname "$INSTALL_DEVICE")"
+
+	for i in $(doGetAllPartitions | sort -r); do
+		if mount -l | grep -q "$INSTALL_DEVICE_PATH/$i"; then
+			local MOUNT_POINT=""
+
+			MOUNT_POINT="$(mount -l | grep "$INSTALL_DEVICE_PATH/$i" | cut -d ' ' -f 3)"
+			umount -R "$MOUNT_POINT" 2>/dev/null
+		fi
 		dd if=/dev/zero of="$INSTALL_DEVICE_PATH/$i" bs=1M count=1
 	done
 
 	doFlush
-}
-
-doPartProbe() {
-	partprobe "$INSTALL_DEVICE"
 }
 
 doWipeDevice() {
@@ -203,7 +308,7 @@ doWipeDevice() {
 }
 
 doCreateNewPartitionTable() {
-	parted -s -a optimal "$INSTALL_DEVICE" mklabel "$1"
+	parted -s -a optimal "$INSTALL_DEVICE" mklabel "$PARTITION_TABLE_TYPE"
 }
 
 doCreateNewPartitions() {
@@ -211,16 +316,17 @@ doCreateNewPartitions() {
 	local END="$BOOT_SIZE"
 
 	case "$BOOT_FILESYSTEM" in
-		fat32)
-			parted -s -a optimal "$INSTALL_DEVICE" mkpart primary "$BOOT_FILESYSTEM" "${START}MiB" "${END}MiB"
-			;;
+	fat32)
+		parted -s -a optimal "$INSTALL_DEVICE" mkpart primary "$BOOT_FILESYSTEM" "${START}MiB" "${END}MiB"
+		;;
 
-		*)
-			parted -s -a optimal "$INSTALL_DEVICE" mkpart primary "${START}MiB" "${END}MiB"
-			;;
+	*)
+		parted -s -a optimal "$INSTALL_DEVICE" mkpart primary "${START}MiB" "${END}MiB"
+		;;
 	esac
 
-	START="$END"; let END+=SWAP_SIZE
+	START="$END"
+	END=$((END + SWAP_SIZE))
 	parted -s -a optimal "$INSTALL_DEVICE" mkpart primary linux-swap "${START}MiB" "${END}MiB"
 
 	START="$END"; END="100%"
@@ -233,90 +339,16 @@ doCreateNewPartitions() {
 }
 
 doDetectDevices() {
-	local ALL_PARTITIONS=($( doGetAllPartitions ))
+	local INSTALL_DEVICE_PATH=""
+	local ALL_PARTITIONS=()
+
+	mapfile -t ALL_PARTITIONS < <(doGetAllPartitions)
+
+	INSTALL_DEVICE_PATH="$(dirname "$INSTALL_DEVICE")"
 
 	BOOT_DEVICE="$INSTALL_DEVICE_PATH/${ALL_PARTITIONS[0]}"
 	SWAP_DEVICE="$INSTALL_DEVICE_PATH/${ALL_PARTITIONS[1]}"
 	ROOT_DEVICE="$INSTALL_DEVICE_PATH/${ALL_PARTITIONS[2]}"
-}
-
-doCreateNewPartitionsLuks() {
-	local START="1"; local END="$BOOT_SIZE"
-	case "$BOOT_FILESYSTEM" in
-		fat32)
-			parted -s -a optimal "$INSTALL_DEVICE" mkpart primary "$BOOT_FILESYSTEM" "${START}MiB" "${END}MiB"
-			;;
-
-		*)
-			parted -s -a optimal "$INSTALL_DEVICE" mkpart primary "${START}MiB" "${END}MiB"
-			;;
-	esac
-
-	START="$END"; END="100%"
-	parted -s -a optimal "$INSTALL_DEVICE" mkpart primary "${START}MiB" "${END}MiB"
-
-	parted -s -a optimal "$INSTALL_DEVICE" set 1 boot on
-	parted -s -a optimal "$INSTALL_DEVICE" set 2 lvm on
-
-	doFlush
-	doPartProbe
-}
-
-doDetectDevicesLuks() {
-	local ALL_PARTITIONS=($( doGetAllPartitions ))
-
-	BOOT_DEVICE="$INSTALL_DEVICE_PATH/${ALL_PARTITIONS[0]}"
-	LUKS_DEVICE="$INSTALL_DEVICE_PATH/${ALL_PARTITIONS[1]}"
-}
-
-isInstallDeviceSsdAndDiscard() {
-	[ "$INSTALL_DEVICE_IS_SSD" == "yes" -a "$INSTALL_DEVICE_SSD_DISCARD" == "yes" ]
-}
-
-doCreateLuks() {
-	doPrint "Formatting LUKS device"
-	local EXIT="1"
-	while [ "$EXIT" != "0" ]; do
-		cryptsetup -q -y -c aes-xts-plain64 -s 512 -h sha512 luksFormat "$LUKS_DEVICE"
-		EXIT="$?"
-	done
-
-	local SSD_DISCARD=""
-
-	isInstallDeviceSsdAndDiscard && SSD_DISCARD=" --allow-discards"
-
-	doPrint "Opening LUKS device"
-	EXIT="1"
-	while [ "$EXIT" != "0" ]; do
-		cryptsetup$SSD_DISCARD luksOpen "$LUKS_DEVICE" "$LUKS_NAME"
-		EXIT="$?"
-	done
-}
-
-doCreateLuksLvm() {
-	local LUKS_LVM_DEVICE="$LVM_DEVICE_PATH/$LUKS_NAME"
-
-	pvcreate "$LUKS_LVM_DEVICE"
-	vgcreate "$LUKS_LVM_NAME" "$LUKS_LVM_DEVICE"
-	lvcreate -L "${SWAP_SIZE}M" -n "$SWAP_LABEL" "$LUKS_LVM_NAME"
-	lvcreate -l 100%FREE -n "$ROOT_LABEL" "$LUKS_LVM_NAME"
-}
-
-doDetectDevicesLuksLvm() {
-	SWAP_DEVICE="$LVM_DEVICE_PATH/$LUKS_LVM_NAME-$SWAP_LABEL"
-	ROOT_DEVICE="$LVM_DEVICE_PATH/$LUKS_LVM_NAME-$ROOT_LABEL"
-}
-
-doMkfs() {
-	case "$1" in
-		fat32)
-			mkfs -t fat -F 32 -n "$2" "$3" || doErrorExit "Create FAT32 filesystem on %s failed" "$3"
-			;;
-
-		*)
-			mkfs -t "$1" -L "$2" "$3" || doErrorExit "Create %s filesystem on %s failed" "$1" "$3"
-			;;
-	esac
 }
 
 doFormat() {
@@ -326,17 +358,11 @@ doFormat() {
 }
 
 doMount() {
-	local SSD_DISCARD=""
-	isInstallDeviceSsdAndDiscard && SSD_DISCARD="-o discard"
-
-	mount $SSD_DISCARD "$ROOT_DEVICE" /mnt
+	mount "$ROOT_DEVICE" /mnt
 	[ ! -d /mnt/boot ] && mkdir /mnt/boot
-	mount $SSD_DISCARD "$BOOT_DEVICE" /mnt/boot
+	mount "$BOOT_DEVICE" /mnt/boot
 
-	SSD_DISCARD=""
-	isInstallDeviceSsdAndDiscard && SSD_DISCARD="--discard"
-
-	swapon $SSD_DISCARD "$SWAP_DEVICE"
+	swapon "$SWAP_DEVICE"
 }
 
 doPacstrap() {
@@ -350,29 +376,66 @@ doPacstrap() {
 doGenerateFstab() {
 	genfstab -p -U /mnt >> /mnt/etc/fstab || doErrorExit "Create fstab failed"
 
-	if isInstallDeviceSsdAndDiscard; then
-		sed -i -e 's/\(data=ordered\)/\1,discard/' /mnt/etc/fstab
-		sed -i -e 's/\(swap\s*defaults\)/\1,discard/' /mnt/etc/fstab
+	if [ "$OPTIMIZE_FSTAB_NOATIME" == "yes" ]; then
+		sed -i -e "s|relatime|noatime|" /mnt/etc/fstab
 	fi
 }
 
-doOptimizeFstabNoatime() {
-	cat /mnt/etc/fstab | sed -e 's/relatime/noatime/' > /tmp/fstab
-	cat /tmp/fstab > /mnt/etc/fstab
-	rm /tmp/fstab
+doBindToChroot() {
+	local CHROOT_SCRIPT_PATH="$SCRIPT_PATH"
+
+	mount --bind "$CHROOT_SCRIPT_PATH" /mnt/root ||\
+		doErrorExit "Bind %s to /mnt/root failed" "$CHROOT_SCRIPT_PATH"
+}
+
+doChroot() {
+	local IN_CHROOT_SCRIPT_PATH="/root"
+	local IN_CHROOT_CONF_FILE="$IN_CHROOT_SCRIPT_PATH/$CONF_FILE"
+
+	arch-chroot /mnt /usr/bin/bash -c \
+		"'$IN_CHROOT_SCRIPT_PATH/$SCRIPT_FILE' -c '$IN_CHROOT_CONF_FILE' $1" ||\
+		doErrorExit "Installation failed and aborted"
+}
+
+doUnmount() {
+	doFlush
+	umount -R /mnt
+	swapoff "$SWAP_DEVICE"
+}
+
+# =================================================================================
+#    S T E P   F U N C T I O N S   C H R O O T
+# =================================================================================
+
+doLoadCvsDataAll() {
+	PACKAGES=()
+	SERVICES=()
+	AUR_PACKAGES=()
+	GIT_PROJECTS=()
+
+	while IFS=, read -r tag val1 val2; do
+		case "$tag" in
+		"C") doSetConfVariable "$val1" "$val2";;
+		"CA") doSetConfArray "$val1" "$val2";;
+		"P") PACKAGES+=("$val1");;
+		"S") SERVICES+=("$val1");;
+		"A") AUR_PACKAGES+=("$val1");;
+		"G") GIT_PROJECTS+=("$val1|$val2");;
+		esac
+	done < "$CONF_FILE"
 }
 
 doSetHostname() {
-	echo "$1" > /etc/hostname
+	echo "$HOSTNAME" > /etc/hostname
 }
 
 doSetTimezone() {
 	[ -L /etc/localtime ] && rm -rf /etc/localtime
-	ln -sf "/usr/share/zoneinfo/$1" /etc/localtime || doErrorExit "Create timezone link failed"
+	ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime || doErrorExit "Create timezone link failed"
 }
 
 doEnableLocales() {
-	for L in "$@"; do
+	for L in "${GENERATE_LOCALES[@]}"; do
 		sed -i -e 's|^#\('"$L"'\)\s*$|\1|' /etc/locale.gen
 	done
 }
@@ -382,7 +445,7 @@ doGenerateLocales() {
 }
 
 doSetLocaleLang() {
-	echo "LANG=$1" > /etc/locale.conf
+	echo "LANG=$LOCALE_LANG" > /etc/locale.conf
 }
 
 doSetHwclock() {
@@ -392,61 +455,41 @@ doSetHwclock() {
 
 doSetConsole() {
 	cat > /etc/vconsole.conf << __END__
-KEYMAP=$1
-FONT=$2
+KEYMAP=$CONSOLE_KEYMAP
+FONT=$CONSOLE_FONT
 __END__
-}
-
-doDisableIpv6() {
-	echo "ipv6.disable_ipv6=1" > /etc/sysctl.d/40-ipv6.conf
-}
-
-doEditMkinitcpioLuks() {
-	# default: HOOKS="base udev autodetect modconf block filesystems keyboard fsck"
-	cat /etc/mkinitcpio.conf | sed -e 's/^\(\(HOOKS=\)\(.*\)\)$/#\1\n\2\3/' > /tmp/mkinitcpio.conf
-	cat /tmp/mkinitcpio.conf | awk 'm = $0 ~ /^HOOKS=/ {
-			gsub(/keyboard/, "", $0);
-			gsub(/filesystems/, "keyboard keymap encrypt lvm2 filesystems", $0);
-			gsub(/  /, " ", $0);
-			print
-		} !m { print }' > /etc/mkinitcpio.conf
-	rm /tmp/mkinitcpio.conf
 }
 
 doOptimizeMkinitcpioHookBefore() {
 	# default: HOOKS="base udev autodetect modconf block filesystems keyboard fsck"
-	cat /etc/mkinitcpio.conf | sed -e 's/^\(\(HOOKS=\)\(.*\)\)$/#\1\n\2\3/' > /tmp/mkinitcpio.conf
-	cat /tmp/mkinitcpio.conf | awk 'm = $0 ~ /^HOOKS=/ {
+	sed -e 's/^\(\(HOOKS=\)\(.*\)\)$/#\1\n\2\3/' < /etc/mkinitcpio.conf > /tmp/mkinitcpio.conf
+	awk 'm = $0 ~ /^HOOKS=/ {
 			gsub(/'"$1"'/, "", $0);
 			gsub(/'"$2"'/, "'"$1"' '"$2"'", $0);
 			gsub(/  /, " ", $0);
 			print
-		} !m { print }' > /etc/mkinitcpio.conf
+		} !m { print }' /tmp/mkinitcpio.conf > /etc/mkinitcpio.conf
 	rm /tmp/mkinitcpio.conf
 }
 
 doMkinitcpio() {
+
+	[ "$OPTIMIZE_MKINITCPIO_HOOK_KEYBOARD_BEFORE_AUTODETECT" == "yes" ] && \
+		doOptimizeMkinitcpioHookBefore "keyboard" "autodetect"
+
+	[ "$OPTIMIZE_MKINITCPIO_HOOK_BLOCK_BEFORE_AUTODETECT" == "yes" ] && \
+		doOptimizeMkinitcpioHookBefore "block" "autodetect"
+
 	mkinitcpio -p linux
-}
-
-doSetRootPassword() {
-	doPrint "Setting password for user 'root'"
-	local EXIT="1"
-	while [ "$EXIT" != "0" ]; do
-		passwd root
-		EXIT="$?"
-	done
-}
-
-doBashLogoutClear() {
-	cat >> ~/.bash_logout << __END__
-clear
-__END__
 }
 
 doRankmirrors() {
 	mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.dist
 	rankmirrors -n "$RANKMIRRORS_TOP" /etc/pacman.d/mirrorlist.dist | tee /etc/pacman.d/mirrorlist
+}
+
+doSetRootUserEnvironment() {
+	doSetPassword root
 }
 
 doSetOptimizeIoSchedulerKernel() {
@@ -464,37 +507,25 @@ doSetOptimizeFsckMode() {
 }
 
 doInstallGrub() {
-	pacman -S --noconfirm --needed grub
+	doInstallPackages grub
 
 	grub-install --target=i386-pc --recheck "$INSTALL_DEVICE"
 }
 
-doDetectRootUuid() {
-	ROOT_UUID="$(blkid -o value -s UUID "$ROOT_DEVICE")"
-}
-
 doEditGrubConfig() {
-	cat /etc/default/grub | sed -e 's/^\(\(GRUB_CMDLINE_LINUX_DEFAULT=\)\(.*\)\)$/#\1\n\2\3/' > /tmp/default-grub
-	cat /tmp/default-grub | awk 'm = $0 ~ /^GRUB_CMDLINE_LINUX_DEFAULT=/ {
-			gsub(/quiet/, "quiet root=UUID='"$ROOT_UUID"''"$IO_SCHEDULER_KERNEL"''"$FSCK_MODE"'", $0);
+	local OPTIONS=""
+
+	OPTIONS+="root=UUID=$ROOT_UUID "
+	OPTIONS+="$KERNEL_CMDLINE "
+	OPTIONS+="lang=$CONSOLE_KEYMAP "
+	OPTIONS+="locale=$LOCALE_LANG "
+	OPTIONS+="$IO_SCHEDULER_KERNEL $FSCK_MODE"
+
+	sed -e 's/^\(\(GRUB_CMDLINE_LINUX_DEFAULT=\)\(.*\)\)$/#\1\n\2\3/' < /etc/default-grub > /tmp/default-grub
+	awk 'm = $0 ~ /^GRUB_CMDLINE_LINUX_DEFAULT=/ {
+			gsub(/quiet/, "'"$OPTIONS"'", $0);
 			print
-		} !m { print }' > /etc/default/grub
-	rm /tmp/default-grub
-}
-
-doDetectLuksUuid() {
-	LUKS_UUID="$(cryptsetup luksUUID "$LUKS_DEVICE")"
-}
-
-doEditGrubConfigLuks() {
-	local SSD_DISCARD
-	isInstallDeviceSsdAndDiscard && SSD_DISCARD=":allow-discards"
-
-	cat /etc/default/grub | sed -e 's/^\(\(GRUB_CMDLINE_LINUX_DEFAULT=\)\(.*\)\)$/#\1\n\2\3/' > /tmp/default-grub
-	cat /tmp/default-grub | awk 'm = $0 ~ /^GRUB_CMDLINE_LINUX_DEFAULT=/ {
-			gsub(/quiet/, "quiet cryptdevice=UUID='"$LUKS_UUID"':'"$LUKS_LVM_NAME"''"$SSD_DISCARD"' root=UUID='"$ROOT_UUID"' lang='"$CONSOLE_KEYMAP"' locale='"$LOCALE_LANG"''"$IO_SCHEDULER_KERNEL"''"$FSCK_MODE"'", $0);
-			print
-		} !m { print }' > /etc/default/grub
+		} !m { print }' /tmp/default-grub > /etc/default/grub
 	rm /tmp/default-grub
 }
 
@@ -503,667 +534,231 @@ doGenerateGrubConfig() {
 }
 
 doInstallGrubEfi() {
-	pacman -S --noconfirm --needed \
-		dosfstools \
-		efibootmgr \
-		grub
+	doInstallPackages dosfstools efibootmgr grub
 
 	grub-install --target=x86_64-efi --efi-directory=/boot --recheck
 }
 
 doCreateEfiStartupNsh() {
-	cat > /boot/startup.nsh << __END__
-$EFI_STARTUP_NSH
-__END__
+	echo "$EFI_STARTUP_NSH" > /boot/startup.nsh
 }
 
 doInstallSystemDBoot() {
-	pacman -S --noconfirm --needed \
-		dosfstools \
-		efibootmgr
-
 	bootctl --path=/boot install
 }
 
 doCreateSystemDBootEntry() {
-	cat > /boot/loader/entries/default.conf << __END__
+	local ENTRY_FILE=""
+	local OPTIONS=""
+
+	ENTRY_FILE="/boot/loader/entries/$(cat /etc/machine-id)-$(uname -r).conf"
+
+	OPTIONS+="root=UUID=$ROOT_UUID "
+	OPTIONS+="$KERNEL_CMDLINE "
+	OPTIONS+="lang=$CONSOLE_KEYMAP "
+	OPTIONS+="locale=$LOCALE_LANG "
+	OPTIONS+="$IO_SCHEDULER_KERNEL $FSCK_MODE"
+
+	cat > "$ENTRY_FILE" << __END__
 title Arch Linux
 linux /vmlinuz-linux
 __END__
 
 	if [ "$INSTALL_INTEL_UCODE" == "yes" ]; then
-		cat >> /boot/loader/entries/default.conf << __END__
+		cat >> "$ENTRY_FILE" << __END__
 initrd /intel-ucode.img
 __END__
 	fi
 
-	cat >> /boot/loader/entries/default.conf << __END__
+	cat >> "$ENTRY_FILE" << __END__
 initrd /initramfs-linux.img
-options quiet root=UUID=$ROOT_UUID rw$IO_SCHEDULER_KERNEL$FSCK_MODE
+options $OPTIONS
 __END__
 }
 
-doCreateSystemDBootConfig() {
-	cat > /boot/loader/loader.conf << __END__
-default default
-timeout 5
-__END__
+doInstallLegacyBootloader() {
+	doInstallGrub
+
+	doDetectDevices
+	doDetectRootUuid
+	doEditGrubConfig
+
+	doGenerateGrubConfig
 }
 
-doCreateSystemDBootEntryLuks() {
-	local SSD_DISCARD=""
-	isInstallDeviceSsdAndDiscard && SSD_DISCARD=":allow-discards"
+doInstallEfiBootloader() {
+	doDetectDevices
+	doDetectRootUuid
 
-	cat > /boot/loader/entries/default.conf << __END__
-title Arch Linux
-linux /vmlinuz-linux
-__END__
+	case "$EFI_BOOT_LOADER" in
+	grub)
+		doInstallGrubEfi
+		[ ! -z "$EFI_STARTUP_NSH" ] && doCreateEfiStartupNsh
+		doEditGrubConfig
+		doGenerateGrubConfig
+		;;
 
-	if [ "$INSTALL_INTEL_UCODE" == "yes" ]; then
-		cat >> /boot/loader/entries/default.conf << __END__
-initrd /intel-ucode.img
-__END__
-	fi
-
-	cat >> /boot/loader/entries/default.conf << __END__
-initrd /initramfs-linux.img
-options quiet cryptdevice=UUID=$LUKS_UUID:$LUKS_LVM_NAME$SSD_DISCARD root=UUID=$ROOT_UUID rw lang=$CONSOLE_KEYMAP locale=$LOCALE_LANG$IO_SCHEDULER_KERNEL$FSCK_MODE
-__END__
+	systemd-boot)
+		doInstallSystemDBoot
+		doCreateSystemDBootEntry
+		;;
+	esac
 }
 
-doCreateCrypttabLuks() {
-	local SSD_DISCARD=""
-	isInstallDeviceSsdAndDiscard && SSD_DISCARD=",discard"
-
-	cat > /etc/crypttab << __END__
-$LUKS_LVM_NAME UUID=$LUKS_UUID none luks$SSD_DISCARD
-__END__
-}
-
-doAddHostUser() {
-	groupadd "$HOST_USER_GROUP"
-
-	useradd -g "$HOST_USER_GROUP" -G "$HOST_USER_GROUPS_EXTRA" -d "/$HOST_USER_USERNAME" -s /bin/bash -c "$HOST_USER_REALNAME" -m "$HOST_USER_USERNAME"
-	HOST_USER_HOME="$(eval printf "~$HOST_USER_USERNAME")"
-	chmod 0751 "$HOST_USER_HOME"
-
-	doPrint "Setting password for host user '$HOST_USER_USERNAME'"
-	if [ "$HOST_USER_SET_PASSWORD" == "yes" ]; then
-		local EXIT="1"
-		while [ "$EXIT" != "0" ]; do
-			passwd "$HOST_USER_USERNAME"
-			EXIT="$?"
-		done
-	else
-		passwd -l "$HOST_USER_USERNAME"
-	fi
-}
-
-doSuBashLogoutClear() {
-	doSu "$1" suBashLogoutClear
-}
-
-doUserSetLocaleLang() {
-	mkdir -p ~/.config
-
-	cat > ~/.config/locale.conf << __END__
-LANG=$1
-__END__
-}
-
-doSuUserSetLocaleLang() {
-	doSu "$1" suUserSetLocaleLang "$2"
-}
-
-doAddMainUser() {
-	useradd -g "$MAIN_USER_GROUP" -G "$MAIN_USER_GROUPS_EXTRA" -s /bin/bash -c "$MAIN_USER_REALNAME" -m "$MAIN_USER_USERNAME"
-	MAIN_USER_HOME="$(eval printf "~$MAIN_USER_USERNAME")"
-	chmod 0751 "$MAIN_USER_HOME"
-
-	doPrint "Setting password for main user '$MAIN_USER_USERNAME'"
-	if [ "$MAIN_USER_SET_PASSWORD" == "yes" ]; then
-		local EXIT="1"
-		while [ "$EXIT" != "0" ]; do
-			passwd "$MAIN_USER_USERNAME"
-			EXIT="$?"
-		done
-	else
-		passwd -l "$MAIN_USER_USERNAME"
-	fi
-}
-
-doInstallScreen() {
-	pacman -S --noconfirm --needed screen
-
-	doSetConf "/etc/screenrc" "startup_message " "off"
-}
-
-doUserCreateScreenrc() {
-cat > ~/.screenrc << __END__
-caption always " %-Lw%{= dd}%n%f* %t%{-}%+Lw"
-__END__
-}
-
-doSuUserCreateScreenrc() {
-	doSu "$1" suUserCreateScreenrc
-}
-
-doInstallSsh() {
-	pacman -S --noconfirm --needed openssh
-}
-
-doEnableServiceSsh() {
-	systemctl enable sshd.service
-}
-
-doSshAcceptKeyTypeSshDss() {
-	cat >> /etc/ssh/ssh_config << __END__
-Host *
-  PubkeyAcceptedKeyTypes=+ssh-dss
-__END__
-
-	cat >> /etc/ssh/sshd_config << __END__
-PubkeyAcceptedKeyTypes=+ssh-dss
-__END__
+doInstallBootloader() {
+	case "$BOOT_METHOD" in
+	legacy)
+		doInstallLegacyBootloader
+		;;
+	efi)
+		doInstallEfiBootloader
+		;;
+	esac
 }
 
 doInstallSudo() {
-	pacman -S --noconfirm --needed sudo
+	doInstallPackages sudo
 
-	cat /etc/sudoers | sed -e 's/^#\s*\(%wheel ALL=(ALL) ALL\)$/\1/' > /tmp/sudoers
-	cat /tmp/sudoers > /etc/sudoers
-	rm /tmp/sudoers
+	chmod u+w /etc/sudoers
+	sed -i -e 's|^#\s*\(%wheel ALL=(ALL) ALL\)$|\1|' /etc/sudoers
+
+	cat >>/etc/sudoers <<__END__
+
+# Root password for root access is required
+Defaults rootpw
+__END__
+	chmod u-w /etc/sudoers
 }
 
 doEnableMultilib() {
-	if [ -z "$(cat /etc/pacman.conf | grep "#\[multilib\]")" ]; then
-		sed -i "s|^#\(\[multilib\]\)$|\1|" /etc/pacman.conf
-		sed -i "/^\[multilib\]$/{n;s/^#\(.*\)$/\1/}" /etc/pacman.conf
+	if grep -q "#\\[multilib\\]" < /etc/pacman.conf; then
+		sed -i "s|^#\\(\\[multilib\\]\\)$|\\1|" /etc/pacman.conf
+		sed -i "|^\\[multilib\\]$|{n;s|^#\\(.*\\)$|\\1|}" /etc/pacman.conf
 	fi
 
-	pacman -Syu --noconfirm --needed
+	pacman -Sy --noconfirm --needed
 
-	[ "$ENABLE_MULTILIB" == "yes" ] && pacman -S --noconfirm --needed $(pacman -Sqg multilib-devel)
+	[ "$ENABLE_MULTILIB" == "yes" ] && doInstallPackages "$(pacman -Sqg multilib-devel)"
 }
 
-doInstallDevel() {
-	pacman -S --noconfirm --needed base-devel
+doAddUser() {
+	# shellcheck disable=SC2153 # USER_NAME is not missspelling
+	[ -z "$USER_NAME" ] && return
 
-	if [ "$ENABLE_MULTILIB" == "yes" ]; then
-		yes | pacman -S --needed $(pacman -Sqg multilib-devel)
-	fi
-}
+	useradd -g "$USER_GROUP" -G "$USER_GROUPS_EXTRA" -s /bin/bash -c "$USER_REALNAME" -m "$USER_NAME"
 
-doCreateSoftwareDirectory() {
-	local DIR="$(eval printf "$SOFTWARE_PATH")"
-	mkdir -p "$DIR"
-}
-
-doChmodSoftwareDirectory() {
-	if [ ! -z "$SOFTWARE_CHXXX_PATH" ]; then
-		local DIR="$(eval printf "$SOFTWARE_CHXXX_PATH")"
-		[ ! -z "$SOFTWARE_CHMOD" ] && chmod -R "$SOFTWARE_CHMOD" "$DIR"
-	fi
-}
-
-doChownSoftwareDirectory() {
-	if [ ! -z "$SOFTWARE_CHXXX_PATH" ]; then
-		local DIR="$(eval printf "$SOFTWARE_CHXXX_PATH")"
-		[ ! -z "$SOFTWARE_CHOWN" ] && chown -R "$SOFTWARE_CHOWN" "$DIR"
-	fi
-}
-
-doDownloadYaourt() {
-	doCreateSoftwareDirectory
-	doChmodSoftwareDirectory
-
-	local _PWD="$PWD"
-
-	local DIR="$(eval printf "$SOFTWARE_PATH")"
-	cd "$DIR"
-
-	local URL="$YAOURT_PACKAGE_QUERY_URL"
-	curl --retry 999 --retry-delay 0 --retry-max-time 300 --speed-time 10 --speed-limit 0 \
-		-LO "$URL"
-
-	URL="$YAOURT_YAOURT_URL"
-	curl --retry 999 --retry-delay 0 --retry-max-time 300 --speed-time 10 --speed-limit 0 \
-		-LO "$URL"
-
-	cd "$_PWD"
-
-	doChownSoftwareDirectory
-}
-
-doSuDownloadYaourt() {
-	doSuSudo "$YAOURT_USER_USERNAME" suDownloadYaourt
-}
-
-doInstallYaourt() {
-	local _PWD="$PWD"
-
-	local DIR="$(eval printf "$SOFTWARE_PATH")"
-	cd "$DIR"
-
-	local URL="$YAOURT_PACKAGE_QUERY_URL"
-	tar xvf "$(basename "$URL")"
-	cd "$(basename "$URL" | cut -d. -f1)"
-	makepkg -i -s --noconfirm --needed
-	cd ..
-
-	URL="$YAOURT_YAOURT_URL"
-	tar xvf "$(basename "$URL")"
-	cd "$(basename "$URL" | cut -d. -f1)"
-	makepkg -i -s --noconfirm --needed
-	cd ..
-
-	cd "$_PWD"
-}
-
-doSuInstallYaourt() {
-	doSuSudo "$YAOURT_USER_USERNAME" suInstallYaourt
-}
-
-doYaourt() {
-	yaourt -S --noconfirm --needed $*
-}
-
-doSuYaourt() {
-	doSuSudo "$YAOURT_USER_USERNAME" suYaourt $*
-}
-
-doInstallX11() {
-	pacman -S --noconfirm --needed \
-		xorg-server \
-		xorg-server-utils \
-		xorg-utils \
-		xorg-xinit \
-		xorg-fonts-75dpi \
-		xorg-fonts-100dpi \
-		xorg-twm \
-		xorg-xclock \
-		xterm \
-		$X11_PACKAGES_VIDEO \
-		$X11_PACKAGES_EXTRA
-}
-
-doX11KeyboardConf() {
-	cat > /etc/X11/xorg.conf.d/00-keyboard.conf << __END__
-Section "InputClass"
-        Identifier "system-keyboard"
-        MatchIsKeyboard "on"
-        Option "XkbLayout" "$1"
-        Option "XkbModel" "$2"
-        Option "XkbVariant" "$3"
-        Option "XkbOptions" "$4"
-EndSection
-__END__
-}
-
-doX11InstallFonts() {
-	pacman -S --noconfirm --needed \
-		noto-fonts \
-		ttf-dejavu \
-		ttf-droid \
-		ttf-liberation \
-		ttf-symbola
-
-	doSuYaourt \
-		ttf-mac-fonts \
-		ttf-ms-fonts
-}
-
-doX11InstallXfce() {
-	pacman -S --noconfirm --needed \
-		xfce4 \
-		xfce4-goodies
-
-	doSuYaourt xfce4-places-plugin
-}
-
-doX11InstallUbuntuFontRendering() {
-	# 2x
-	pacman -Rdd --noconfirm cairo
-	doSuYaourt cairo-ubuntu
-	pacman -Rdd --noconfirm cairo
-	doSuYaourt cairo-ubuntu
-
-	pacman -Rdd --noconfirm freetype2
-	doSuYaourt freetype2-ubuntu
-
-	pacman -Rdd --noconfirm fontconfig
-	doSuYaourt fontconfig-ubuntu
-}
-
-doUpdateIconCache() {
-	for i in $( find /usr/share/icons/* -maxdepth 0 -type d ); do
-		gtk-update-icon-cache "$i"
-	done
-}
-
-doX11InstallThemes() {
-	pacman -S --noconfirm --needed gtk-engine-murrine numix-gtk-theme
-
-	doSuYaourt \
-		gtk-theme-config \
-		elementary-xfce-icons-git
-
-	doUpdateIconCache
-}
-
-doSetConf() {
-	cat "$1" | sed -e 's/^#\?\(\('"$2"'\)\(.*\)\)$/#\1\n\2'"$3"'/' > "/tmp/$(basename "$1")"
-	cat "/tmp/$(basename "$1")" > "$1"
-	rm "/tmp/$(basename "$1")"
-}
-
-doX11InstallLightdm() {
-	pacman -S --noconfirm --needed \
-		lightdm \
-		lightdm-gtk-greeter
-
-	if [ "$X11_INSTALL_THEMES" == "yes" ]; then
-		doSetConf "/etc/lightdm/lightdm-gtk-greeter.conf" "theme-name=" "Numix"
-		doSetConf "/etc/lightdm/lightdm-gtk-greeter.conf" "font-name=" "Droid Sans 9"
-		doSetConf "/etc/lightdm/lightdm-gtk-greeter.conf" "xft-antialias=" "true"
-		doSetConf "/etc/lightdm/lightdm-gtk-greeter.conf" "xft-dpi=" "96"
-		doSetConf "/etc/lightdm/lightdm-gtk-greeter.conf" "xft-hintstyle=" "slight"
-		doSetConf "/etc/lightdm/lightdm-gtk-greeter.conf" "xft-rgba=" "rgb"
-		doSetConf "/etc/lightdm/lightdm-gtk-greeter.conf" "indicators=" "~host;~spacer;~clock;~spacer;~language;~power"
-		doSetConf "/etc/lightdm/lightdm-gtk-greeter.conf" "clock-format=" "%a, %d %b %H:%M:%S"
-	fi
-}
-
-doEnableServiceLightdm() {
-	systemctl enable lightdm.service
-}
-
-doX11InstallTeamviewer() {
-	doSuYaourt teamviewer
-}
-
-doEnableServiceTeamviewer() {
-	systemctl enable teamviewerd
-}
-
-doInstallNetworkManager() {
-	pacman -S --noconfirm --needed \
-		networkmanager \
-		networkmanager-vpnc \
-		modemmanager
-
-	if [ "$INSTALL_X11" == "yes" ]; then
-		pacman -S --noconfirm --needed network-manager-applet
-	fi
-}
-
-doEnableServiceNetworkManager() {
-	systemctl enable NetworkManager.service
-}
-
-doInstallCron() {
-	pacman -S --noconfirm --needed cronie
-}
-
-doEnableServiceCron() {
-	systemctl enable cronie
-}
-
-doInstallAt() {
-	pacman -S --noconfirm --needed at
-}
-
-doEnableServiceAt() {
-	systemctl enable atd.service
-}
-
-doInstallCups() {
-	pacman -S --noconfirm --needed \
-		cups \
-		libcups \
-		ghostscript \
-		gsfonts
-
-	if [ "$INSTALL_X11" == "yes" ]; then
-		pacman -S --noconfirm --needed system-config-printer
-	fi
-}
-
-doEnableServiceCups() {
-	systemctl enable org.cups.cupsd
-}
-
-doInstallTlp() {
-	pacman -S --noconfirm --needed tlp
-}
-
-doEnableServiceTlp() {
-	systemctl enable tlp.service
-	systemctl enable tlp-sleep.service
-}
-
-doInstallBluetooth() {
-	pacman -S --noconfirm --needed \
-		bluez \
-		bluez-utils
-
-	if [ "$INSTALL_X11" == "yes" ]; then
-		pacman -S --noconfirm --needed blueman
-	fi
-}
-
-doEnableServiceBluetooth() {
-	systemctl enable bluetooth.service
-}
-
-doInstallPulseaudio() {
-	pacman -S --noconfirm --needed \
-		pulseaudio \
-		pulseaudio-alsa
-
-	if [ "$INSTALL_X11" == "yes" ]; then
-		pacman -S --noconfirm --needed \
-			paprefs \
-			pavucontrol
-
-		doSuYaourt pulseaudio-ctl
-	fi
-}
-
-doInstallVirtualboxGuest() {
-	pacman -S --noconfirm --needed \
-		linux-headers \
-		virtualbox-guest-dkms \
-		virtualbox-guest-utils
-}
-
-doEnableModulesVirtualboxGuest() {
-	cat > /etc/modules-load.d/virtualbox-guest.conf << __END__
-vboxguest
-vboxsf
-vboxvideo
-__END__
-}
-
-doInstallVirtualboxHost() {
-	pacman -S --noconfirm --needed \
-		linux-headers \
-		qt5-x11extras \
-		virtualbox \
-		virtualbox-host-dkms \
-		virtualbox-guest-iso
-
-	if [ "$ADD_HOST_USER" == "yes" ] && [ "$VIRTUALBOX_VBOXUSERS_ADD_HOST_USER" == "yes" ]; then
-		gpasswd -a "$HOST_USER_USERNAME" vboxusers
-	fi
-
-	if [ "$ADD_MAIN_USER" == "yes" ] && [ "$VIRTUALBOX_VBOXUSERS_ADD_MAIN_USER" == "yes" ]; then
-		gpasswd -a "$MAIN_USER_USERNAME" vboxusers
-	fi
-}
-
-doEnableModulesVirtualboxHost() {
-	cat > /etc/modules-load.d/virtualbox-host.conf << __END__
-vboxdrv
-vboxnetadp
-vboxnetflt
-vboxpci
-__END__
-}
-
-doDisablePcSpeaker() {
-	cat >> /etc/modprobe.d/blacklist.conf << __END__
-blacklist pcspkr
-__END__
-}
-
-doSymlinkHashCommands() {
-	ln -s /usr/bin/md5sum /usr/local/bin/md5
-	ln -s /usr/bin/sha1sum /usr/local/bin/sha1
-}
-
-doOptimizeSwappiness() {
-	cat > /etc/sysctl.d/99-sysctl.conf << __END__
-vm.swappiness=$OPTIMIZE_SWAPPINESS_VALUE
-__END__
-}
-
-doOptimizeIoSchedulerUdev() {
-	cat > /etc/udev/rules.d/60-schedulers.rules << __END__
-ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="$OPTIMIZE_IO_SCHEDULER_UDEV_ROTATIONAL", ATTR{queue/scheduler}="$OPTIMIZE_IO_SCHEDULER_UDEV_VALUE"
-__END__
-}
-
-doInstallPackageSets() {
-	for i in $INSTALL_PACKAGE_SETS; do
-		j="$i":pacmanBefore
-		[ ! -z "${PACKAGE_SET[$j]}" ] && ${PACKAGE_SET[$j]}
-
-		j="$i":pacman
-		[ ! -z "${PACKAGE_SET[$j]}" ] && pacman -S --noconfirm --needed ${PACKAGE_SET[$j]}
-
-		j="$i":pacmanAfter
-		[ ! -z "${PACKAGE_SET[$j]}" ] && ${PACKAGE_SET[$j]}
-
-		j="$i":yaourtBefore
-		[ ! -z "${PACKAGE_SET[$j]}" ] && ${PACKAGE_SET[$j]}
-
-		j="$i":yaourt
-		[ ! -z "${PACKAGE_SET[$j]}" ] && doSuYaourt ${PACKAGE_SET[$j]}
-
-		j="$i":yaourtAfter
-		[ ! -z "${PACKAGE_SET[$j]}" ] && ${PACKAGE_SET[$j]}
-	done
-}
-
-doUnmount() {
-	umount -R /mnt
-	swapoff "$SWAP_DEVICE"
-}
-
-doSetConfVariable() {
-	local VAR_NAME="$(doTrim $1)"
-	[ -z "$VAR_NAME" ] && doErrorExit "Invalid variable name"
-	shift
-	declare -g "$VAR_NAME"="$@"
-}
-
-doSetConfArray() {
-	local VAR_NAME="$(doTrim $1)"
-	[ -z "$VAR_NAME" ] && doErrorExit "Invalid array variable name"
-	shift
-	declare -g -a "$VAR_NAME"
-
-	local IFS=\;
-	local I=0
-	for VAL in $@; do
-		declare -g "$VAR_NAME[$I]"="$VAL"
-		I=$((I + 1))
-	done
-}
-
-doLoadCvsDataConfig() {
-	while IFS=, read -r tag val1 val2; do
-		case "$tag" in
-		"C") doSetConfVariable "$val1" "$val2";;
-		"CA") doSetConfArray "$val1" "$val2";;
-		esac
-	done < $CONF_FILE
-}
-
-doLoadCvsDataAll() {
-	PACKAGES=()
-	SERVICES=()
-	AUR_PACKAGES=()
-	GIT_PROJECTS=()
-
-	while IFS=, read -r tag val1 val2; do
-		case "$tag" in
-		"C") doSetConfVariable "$val1" "$val2";;
-		"CA") doSetConfArray "$val1" "$val2";;
-		"P") PACKAGES+=("$val1");;
-		"S") SERVICES+=("$val1");;
-		"A") AUR_PACKAGES+=("$val1");;
-		"G") GIT_PROJECTS+=("$val1");;
-		esac
-	done < $CONF_FILE
-}
-
-doCheckInstallDeviceIsSsd() {
-	INSTALL_DEVICE_PATH="$(dirname "$INSTALL_DEVICE")"
-	INSTALL_DEVICE_FILE="$(basename "$INSTALL_DEVICE")"
-
-	if [ "$(cat "/sys/block/$INSTALL_DEVICE_FILE/queue/rotational")" == "0" ]; then
-		INSTALL_DEVICE_IS_SSD="yes"
+	if [ "$USER_SET_PASSWORD" == "yes" ]; then
+		doSetPassword "$USER_NAME"
 	else
-		INSTALL_DEVICE_IS_SSD="no"
+		passwd -l "$USER_NAME"
+	fi
+
+	if [ -n "$USER_LOCALE" ] && [ -n "$USER_LOCALE_LANG" ]; then
+		doUserSetLocaleLang "$USER_NAME" "$USER_LOCALE_LANG"
 	fi
 }
+
+doInstallAurPackages () {
+	local PACKAGES=("$@")
+	[ ${#PACKAGES[@]} -gt 0 ] || return
+
+	doInstallYaourt "$USER_NAME"
+
+	doInstallYaourtPackages "$USER_NAME" "${PACKAGES[@]}"
+}
+
+doCloneGits() {
+	local PROJECTS=("$@")
+	[ ${#PROJECTS[@]} -gt 0 ] || return
+
+	[ -z "$GIT_PROJECTS_DIR" ] && doErrorExit "Project directory name for git repositories is empty"
+	[ ! -d "$GIT_PROJECTS_DIR" ] && doUserMkdir "$USER_NAME" "$GIT_PROJECTS_DIR"
+
+
+	pushd "$USER_HOME/$GIT_PROJECTS_DIR" || doErrorExit "Change directory to '%s' failed" "$USER_HOME/$GIT_PROJECTS_DIR" 
+	for PROJECT in "${PROJECTS[@]}"; do
+		GIT_URL=${PROJECT%%|*}
+		GIT_NAME=${PROJECT##*|}
+		doAsUser "$USER_NAME" git clone "$GIT_URL" "$GIT_NAME" || doErrorExit "Clone git repository '%s' failed" "$GIT_URL"
+	done
+	popd || doErrorExit "Change back directory failed"
+}
+
+doCustomize() {
+	if [ "$CUSTOMIZE" == "yes" ]; then
+		[ -z "$CUSTOMIZE_GIT_URL" ] && doErrorExit "Empty customize git URL"
+		[ -n "$CUSTOMIZE_TARGET_DIR" ] && doUserCloneGitRepo "$USER_NAME" "$CUSTOMIZE_GIT_URL" "$CUSTOMIZE_TARGET_DIR"
+
+		if [ -n "$CUSTOMIZE_RUN_SCRIPT" ]; then
+			pushd "$CUSTOMIZE_TARGET_DIR" || doErrorExit "Change directory to '%s' failed" "$CUSTOMIZE_TARGET_DIR"
+			# shellcheck disable=SC1090 # source file will be set from configuration file
+			source "$CUSTOMIZE_RUN_SCRIPT" || doErrorExit "Customizing script failed"
+			popd || doErrorExit "Change back directory failed"
+		fi
+	fi
+}
+
+# =================================================================================
+#    G E T O P T S
+# =================================================================================
+
+while getopts :hc: opt; do
+	case "$opt" in
+	h)
+		doPrintHelpMessage
+		exit 0
+		;;
+	c)
+		CONF_FILE="$OPTARG"
+		;;
+	:)
+		case "$OPTARG" in
+		c)
+			doErrorExit "Missing config file"
+			;;
+		esac
+		doErrorExit
+		;;
+	\?)
+		doErrorExit "Invalid option ('-%s')" "$OPTARG"
+		;;
+	esac
+done
+shift $((OPTIND - 1))
 
 # =================================================================================
 #    M A I N
 # =================================================================================
 
+INSTALL_TARGET="$1"
+
+[ -z "$CONF_FILE" ] && CONF_FILE="$SCRIPT_PATH/$SCRIPT_NAME.csv"
+
+[ ! -f "$CONF_FILE" ] && doErrorExit "Config file not found ('%s')" "$CONF_FILE"
+
+[ -z "$INSTALL_TARGET" ] && INSTALL_TARGET="base"
+
 case "$INSTALL_TARGET" in
 	base)
 		doLoadCvsDataConfig
-
-		doCheckInstallDeviceIsSsd
 		doCheckInstallDevice
-
 		doConfirmInstall
-
 		doDeactivateAllSwaps
 		doWipeAllPartitions
 		doWipeDevice
+		doCreateNewPartitionTable
 
-		doCreateNewPartitionTable "$PARTITION_TABLE_TYPE"
-
-		if [ "$LVM_ON_LUKS" == "yes" ]; then
-			doCreateNewPartitionsLuks
-			doDetectDevicesLuks
-			doCreateLuks
-			doCreateLuksLvm
-			doDetectDevicesLuksLvm
-		else
-			doCreateNewPartitions
-			doDetectDevices
-		fi
+		doCreateNewPartitions
+		doDetectDevices
 
 		doFormat
 		doMount
-
 		doPacstrap
-
 		doGenerateFstab
-
-		[ "$OPTIMIZE_FSTAB_NOATIME" == "yes" ] && doOptimizeFstabNoatime
-
 		doBindToChroot
 		doChroot chroot
 
 		doPrint "Flushing - this might take a while..."
-		doFlush
 
 		doUnmount
 
@@ -1175,298 +770,46 @@ case "$INSTALL_TARGET" in
 	chroot)
 		doLoadCvsDataAll
 
-		doCheckInstallDeviceIsSsd
+		doSetHostname
+		doSetTimezone
 
-		doSetHostname "$HOSTNAME"
-		doSetTimezone "$TIMEZONE"
-
-		doEnableLocales "${GENERATE_LOCALES[@]}"
+		doEnableLocales
 		doGenerateLocales
-		doSetLocaleLang "$LOCALE_LANG"
+		doSetLocaleLang
 
 		doSetHwclock
 
-		doSetConsole "$CONSOLE_KEYMAP" "$CONSOLE_FONT"
-
-		[ "$DISABLE_IPV6" == "yes" ] && doDisableIpv6
-
-		[ "$LVM_ON_LUKS" == "yes" ] && doEditMkinitcpioLuks
-
-		[ "$OPTIMIZE_MKINITCPIO_HOOK_KEYBOARD_BEFORE_AUTODETECT" == "yes" ] && \
-			doOptimizeMkinitcpioHookBefore "keyboard" "autodetect"
-
-		[ "$OPTIMIZE_MKINITCPIO_HOOK_BLOCK_BEFORE_AUTODETECT" == "yes" ] && \
-			doOptimizeMkinitcpioHookBefore "block" "autodetect"
+		doSetConsole
 
 		doMkinitcpio
 
-		doSetRootPassword
-
-		[ "$ROOT_USER_BASH_LOGOUT_CLEAR" == "yes" ] && doBashLogoutClear
-
 		[ "$RANKMIRRORS" == "yes" ] && doRankmirrors
+
+		doSetRootUserEnvironment
 
 		doSetOptimizeIoSchedulerKernel
 		doSetOptimizeFsckMode
 
-		case "$BOOT_METHOD" in
-			legacy)
-				doInstallGrub
+		doInstallBootloader
 
-				if [ "$LVM_ON_LUKS" = "yes" ]; then
-					doDetectDevicesLuks
-					doDetectDevicesLuksLvm
-					doDetectLuksUuid
-					doDetectRootUuid
-					doEditGrubConfigLuks
-				else
-					doDetectDevices
-					doDetectRootUuid
-					doEditGrubConfig
-				fi
-
-				doGenerateGrubConfig
-				;;
-
-			efi)
-				if [ "$LVM_ON_LUKS" == "yes" ]; then
-					doDetectDevicesLuks
-					doDetectDevicesLuksLvm
-					doDetectLuksUuid
-					doDetectRootUuid
-
-					case "$EFI_BOOT_LOADER" in
-						grub)
-							doInstallGrubEfi
-							[ ! -z "$EFI_STARTUP_NSH" ] && doCreateEfiStartupNsh
-							doEditGrubConfigLuks
-							doGenerateGrubConfig
-							;;
-
-						systemd-boot)
-							doInstallSystemDBoot
-							doCreateSystemDBootEntryLuks
-							doCreateSystemDBootConfig
-							;;
-					esac
-				else
-					doDetectDevices
-					doDetectRootUuid
-
-					case "$EFI_BOOT_LOADER" in
-						grub)
-							doInstallGrubEfi
-							[ ! -z "$EFI_STARTUP_NSH" ] && doCreateEfiStartupNsh
-							doEditGrubConfig
-							doGenerateGrubConfig
-							;;
-
-						systemd-boot)
-							doInstallSystemDBoot
-							doCreateSystemDBootEntry
-							doCreateSystemDBootConfig
-							;;
-					esac
-				fi
-				;;
-		esac
-
-		[ "$LVM_ON_LUKS" == "yes" ] && doCreateCrypttabLuks
-
-		if [ "$ADD_HOST_USER" == "yes" ]; then
-			doAddHostUser
-
-			if [ "$HOST_USER_BASH_LOGOUT_CLEAR" == "yes" ]; then
-				doCopyToSu "$HOST_USER_USERNAME"
-				doSuBashLogoutClear "$HOST_USER_USERNAME"
-			fi
-
-			if [ ! -z "$HOST_USER_LOCALE" ]; then
-				if [ ! -z "$HOST_USER_LOCALE_LANG" ]; then
-					doCopyToSu "$HOST_USER_USERNAME"
-					doSuUserSetLocaleLang "$HOST_USER_USERNAME" "$HOST_USER_LOCALE_LANG"
-				fi
-			fi
-		fi
-
-		if [ "$ADD_MAIN_USER" == "yes" ]; then
-			doAddMainUser
-
-			if [ "$MAIN_USER_BASH_LOGOUT_CLEAR" == "yes" ]; then
-				doCopyToSu "$MAIN_USER_USERNAME"
-				doSuBashLogoutClear "$MAIN_USER_USERNAME"
-			fi
-
-			if [ ! -z "$MAIN_USER_LOCALE" ]; then
-				if [ ! -z "$MAIN_USER_LOCALE_LANG" ]; then
-					doCopyToSu "$MAIN_USER_USERNAME"
-					doSuUserSetLocaleLang "$MAIN_USER_USERNAME" "$MAIN_USER_LOCALE_LANG"
-				fi
-			fi
-		fi
-
-		if [ "$INSTALL_SCREEN" == "yes" ]; then
-			doInstallScreen
-
-			if [ "$HOST_USER_CREATE_SCREENRC" == "yes" ]; then
-				doCopyToSu "$HOST_USER_USERNAME"
-				doSuUserCreateScreenrc "$HOST_USER_USERNAME"
-			fi
-
-			if [ "$MAIN_USER_CREATE_SCREENRC" == "yes" ]; then
-				doCopyToSu "$MAIN_USER_USERNAME"
-				doSuUserCreateScreenrc "$MAIN_USER_USERNAME"
-			fi
-		fi
-
-		if [ "$INSTALL_SSH" == "yes" ]; then
-			doInstallSsh
-
-			[ "$ENABLE_SERVICE_SSH" == "yes" ] && doEnableServiceSsh
-
-			[ "$SSH_ACCEPT_KEY_TYPE_SSH_DSS" == "yes" ] && doSshAcceptKeyTypeSshDss
-		fi
-
-		[ "$INSTALL_SUDO" == "yes" ] && doInstallSudo
+		doInstallSudo
 
 		[ "$ENABLE_MULTILIB" == "yes" ] && doEnableMultilib
 
-		[ "$INSTALL_DEVEL" == "yes" ] && doInstallDevel
+		doAddUser
 
-		if [ "$DOWNLOAD_YAOURT" == "yes" ]; then
-			doCopyToSu "$YAOURT_USER_USERNAME"
-			doSuDownloadYaourt
+		doInstallPackages "${PACKAGES[@]}"
 
-			[ "$INSTALL_YAOURT" == "yes" ] && doSuInstallYaourt
-		fi
+		doInstallAurPackages "${AUR_PACKAGES[@]}"
 
-		if [ "$INSTALL_X11" == "yes" ]; then
-			doInstallX11
+		doEnableServices "${SERVICES[@]}"
 
-			[ "$X11_KEYBOARD_CONF" == "yes" ] && \
-				doX11KeyboardConf "$X11_KEYBOARD_LAYOUT" "$X11_KEYBOARD_MODEL" "$X11_KEYBOARD_VARIANT" "$X11_KEYBOARD_OPTIONS"
+		doCustomize
 
-			[ "$X11_INSTALL_FONTS" == "yes" ] && doX11InstallFonts
-
-			[ "$X11_INSTALL_XFCE" == "yes" ] && doX11InstallXfce
-
-			[ "$X11_INSTALL_UBUNTU_FONT_RENDERING" == "yes" ] && doX11InstallUbuntuFontRendering
-
-			[ "$X11_INSTALL_THEMES" == "yes" ] && doX11InstallThemes
-
-			if [ "$X11_INSTALL_LIGHTDM" == "yes" ]; then
-				doX11InstallLightdm
-
-				[ "$ENABLE_SERVICE_LIGHTDM" == "yes" ] && doEnableServiceLightdm
-			fi
-
-			if [ "$X11_INSTALL_TEAMVIEWER" == "yes" ]; then
-				doX11InstallTeamviewer
-
-				[ "$ENABLE_SERVICE_TEAMVIEWER" == "yes" ] && doEnableServiceTeamviewer
-			fi
-		fi
-
-		if [ "$INSTALL_NETWORK_MANAGER" == "yes" ]; then
-			doInstallNetworkManager
-
-			[ "$ENABLE_SERVICE_NETWORK_MANAGER" == "yes" ] && doEnableServiceNetworkManager
-		fi
-
-		if [ "$INSTALL_CRON" == "yes" ]; then
-			doInstallCron
-
-			[ "$ENABLE_SERVICE_CRON" == "yes" ] && doEnableServiceCron
-		fi
-
-		if [ "$INSTALL_AT" == "yes" ]; then
-			doInstallAt
-
-			[ "$ENABLE_SERVICE_AT" == "yes" ] && doEnableServiceAt
-		fi
-
-		if [ "$INSTALL_CUPS" == "yes" ]; then
-			doInstallCups
-
-			[ "$ENABLE_SERVICE_CUPS" == "yes" ] && doEnableServiceCups
-		fi
-
-		if [ "$INSTALL_TLP" == "yes" ]; then
-			doInstallTlp
-
-			[ "$ENABLE_SERVICE_TLP" == "yes" ] && doEnableServiceTlp
-		fi
-
-		if [ "$INSTALL_BLUETOOTH" == "yes" ]; then
-			doInstallBluetooth
-
-			[ "$ENABLE_SERVICE_BLUETOOTH" == "yes" ] && doEnableServiceBluetooth
-		fi
-
-		[ "$INSTALL_PULSEAUDIO" == "yes" ] && doInstallPulseaudio
-
-		if [ "$INSTALL_VIRTUALBOX_GUEST" == "yes" ]; then
-			doInstallVirtualboxGuest
-
-			[ "$ENABLE_MODULES_VIRTUALBOX_GUEST" == "yes" ] && doEnableModulesVirtualboxGuest
-		fi
-
-		if [ "$INSTALL_VIRTUALBOX_HOST" == "yes" ]; then
-			doInstallVirtualboxHost
-
-			[ "$ENABLE_MODULES_VIRTUALBOX_HOST" == "yes" ] && doEnableModulesVirtualboxHost
-		fi
-
-		[ "$DISABLE_PC_SPEAKER" == "yes" ] && doDisablePcSpeaker
-
-		[ "$SYMLINK_HASH_COMMANDS" == "yes" ] && doSymlinkHashCommands
-
-		[ "$OPTIMIZE_SWAPPINESS" == "yes" ] && doOptimizeSwappiness
-
-		[ "$OPTIMIZE_IO_SCHEDULER_UDEV" == "yes" ] && doOptimizeIoSchedulerUdev
-
-		[ ! -z "$INSTALL_PACKAGE_SETS" ] && doInstallPackageSets
-
-		if [ "$INSTALL_REMOVE_FROM_SU" == "yes" ]; then
-			[ "$ADD_HOST_USER" == "yes" ] && doRemoveFromSu "$HOST_USER_USERNAME"
-			[ "$ADD_MAIN_USER" == "yes" ] && doRemoveFromSu "$MAIN_USER_USERNAME"
-
-			[ "$INSTALL_YAOURT" == "yes" ] && doRemoveFromSu "$YAOURT_USER_USERNAME"
-		fi
+		doCloneGits "${GIT_PROJECTS[@]}"
 
 		exit 0
 		;;
-
-	suBashLogoutClear)
-		doBashLogoutClear
-		exit 0
-		;;
-
-	suUserSetLocaleLang)
-		doUserSetLocaleLang "$INSTALL_OPTIONS"
-		exit 0
-		;;
-
-	suUserCreateScreenrc)
-		doUserCreateScreenrc
-		exit 0
-		;;
-
-	suDownloadYaourt)
-		doDownloadYaourt
-		exit 0
-		;;
-
-	suInstallYaourt)
-		doInstallYaourt
-		exit 0
-		;;
-
-	suYaourt)
-		doYaourt "$INSTALL_OPTIONS"
-		exit 0
-		;;
-
 	*)
 		doErrorExit "Unknown target ('%s')" "$INSTALL_TARGET"
 		;;
