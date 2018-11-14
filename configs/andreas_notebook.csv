@@ -7,7 +7,6 @@ C,PARTITION_TABLE_TYPE,gpt
 C,EFI_BOOT_LOADER,systemd-boot
 C,EFI_STARTUP_NSH,
 C,ROOT_FILESYSTEM,ext4
-C,LVM_ON_LUKS,no
 C,HOSTNAME,notebook
 C,TIMEZONE,Europe/Berlin
 CA,GENERATE_LOCALES,en_US.UTF-8 UTF-8;de_DE.UTF-8 UTF-8
@@ -16,24 +15,28 @@ C,LOCALE_LANG,en_US.UTF-8
 C,CONSOLE_KEYMAP,de-latin1
 C,CONSOLE_FONT,lat9w-16
 C,ROOT_USER_BASH_LOGOUT_CLEAR,no
-C,ADD_HOST_USER,no
-C,ADD_MAIN_USER,yes
-C,MAIN_USER_USERNAME,andreas
-C,MAIN_USER_REALNAME,Andreas Schmidt
-C,MAIN_USER_GROUP,users
-C,MAIN_USER_GROUPS_EXTRA,wheel
-C,MAIN_USER_SET_PASSWORD,yes
-C,MAIN_USER_BASH_LOGOUT_CLEAR,no
-C,MAIN_USER_LOCALE,en_US.UTF-8 UTF-8
-C,MAIN_USER_LOCALE_LANG,en_US.UTF-8
+C,USER_NAME,andreas
+C,USER_REALNAME,Andreas Schmidt
+C,USER_GROUP,users
+C,USER_GROUPS_EXTRA,wheel,storage,power
+C,USER_SET_PASSWORD,yes
+C,USER_SHELL,fish
+C,USER_BASH_LOGOUT_CLEAR,no
+C,USER_LOCALE,en_US.UTF-8 UTF-8
+C,USER_LOCALE_LANG,en_US.UTF-8
 C,RANKMIRRORS,no
-C,RANKMIRRORS,5
-C,INSTALL_DEVICE_SSD_DISCARD,yes
+C,RANKMIRRORS_TOP,5
 C,BOOT_LABEL,boot
 C,SWAP_LABEL,swap
 C,ROOT_LABEL,root
 C,INSTALL_BASE_DEVEL,yes
+C,KERNEL_CMDLINE,rw quiet loglevel=3 vga=current acpi_osi="!Windows 2013" acpi_osi=Linux
+C,YAOURT_USER_NAME,andreas
 C,GIT_PROJECTS_DIR,code/git
+C,CUSTOMIZE,yes
+C,CUSTOMIZE_GIT_URL,http://homeserver/gitlab/andreas/dotfiles.git
+C,CUSTOMIZE_TARGET_DIR,/tmp/dotfiles
+C,CUSTOMIZE_RUN_SCRIPT,install.sh
 P,alsa-utils,
 P,archlinux-wallpaper,
 P,awesome-terminal-fonts,
@@ -48,7 +51,6 @@ P,feh,
 P,firefox,
 P,fish,
 P,i3-wm,
-P,i3-gaps,
 P,i3blocks,
 P,i3lock,
 P,i3status,
@@ -71,6 +73,7 @@ P,noto-fonts,
 P,offlineimap,
 P,openssh,
 P,pulseaudio,
+P,pulseaudio-alsa,
 P,py3status
 P,python,
 P,python-mpd2,
@@ -78,13 +81,11 @@ P,python-pip,
 P,python2,
 P,rofi,
 P,rxvt-unicode,
-P,rxvt-perls,
 P,screen,
-P,sudo,
-P,thunderbird,
 P,tig,
 P,ttf-dejavu,
 P,ttf-liberation,
+P,urxvt-perls,
 P,vim,
 P,vlc,
 P,wget,
@@ -97,11 +98,14 @@ P,xorg-apps,
 P,xorg-server,
 P,xorg-xinit,
 P,xterm,
+S,bluetooth,
 S,docker,
 S,lightdm,
 S,mpd,
 S,NetworkManager,
 S,sshd,
+S,teamviewerd
 A,kartina-tv-bin,
 A,urxvt-resize-font-git,
-G,ssh://git@homeserver:1022/andreas/eagle.git,
+A,teamviewer
+G,ssh://git@homeserver:1022/andreas/eagle.git,name
