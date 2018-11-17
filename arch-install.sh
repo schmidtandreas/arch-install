@@ -10,9 +10,9 @@ AUR_YAOURT_URL="https://aur.archlinux.org/yaourt.git"
 
 TESTRUN=false
 
-# =================================================================================
+# ==============================================================================
 #    C O M M O N   F U N C T I O N S
-# =================================================================================
+# ==============================================================================
 
 doTrim() {
 	local TRIMMED="$1"
@@ -43,7 +43,8 @@ doErrorExit() {
 		printf "ERROR: Unknown error\\n"
 	fi
 
-	cd "$START_PATH" || doErrorExit "Change directory to '%s' failed" "$START_PATH"
+	cd "$START_PATH" || \
+		doErrorExit "Change directory to '%s' failed" "$START_PATH"
 	exit 1
 }
 
@@ -100,18 +101,24 @@ doInstallYaourt() {
 
 	pushd /tmp || doErrorExit "Change directory to '/tmp' failed"
 
-	git clone "$AUR_PACKAGE_QUERY_URL" package-query || doErrorExit "Clone package-query failed"
+	git clone "$AUR_PACKAGE_QUERY_URL" package-query || \
+		doErrorExit "Clone package-query failed"
 	[ ! -d ./package-query ] && doErrorExit "Clone package-query failed"
-	chown -R "$_USER":users ./package-query || doErrorExit "Change owner of package-query failed"
-	cd package-query || doErrorExit "Change directory to 'package-query' failed"
-	doAsUser "$_USER" makepkg -si --noconfirm --needed || doErrorExit "Install package-query failed"
+	chown -R "$_USER":users ./package-query || \
+		doErrorExit "Change owner of package-query failed"
+	cd package-query || \
+		doErrorExit "Change directory to 'package-query' failed"
+	doAsUser "$_USER" makepkg -si --noconfirm --needed || \
+		doErrorExit "Install package-query failed"
 	cd ..
 
 	git clone "$AUR_YAOURT_URL" yaourt || doErrorExit "Clone yaourt failed"
 	[ ! -d ./yaourt ] && doErrorExit "Clone yaourt failed"
-	chown -R "$_USER":users ./yaourt || doErrorExit "Change owner of /tmp/yaourt failed"
+	chown -R "$_USER":users ./yaourt || \
+		doErrorExit "Change owner of /tmp/yaourt failed"
 	cd yaourt || doErrorExit "Change directory to 'yaourt' failed"
-	doAsUser "$_USER" makepkg -si --noconfirm --needed || doErrorExit "Install yaourt failed"
+	doAsUser "$_USER" makepkg -si --noconfirm --needed || \
+		doErrorExit "Install yaourt failed"
 	cd ..
 	
 	popd || doErrorExit "Change back directory failed"
@@ -130,7 +137,8 @@ __END__
 
 doEnableServices() {
 	for SERVICE in "$@"; do
-		systemctl enable "$SERVICE" || doErrorExit "Enable systemd service '%s' failed" "$SERVICE"
+		systemctl enable "$SERVICE" || \
+			doErrorExit "Enable systemd service '%s' failed" "$SERVICE"
 	done
 }
 
@@ -161,13 +169,15 @@ doSetConfArray() {
 
 doMkfs() {
 	case "$1" in
-		fat32)
-			mkfs -t fat -F 32 -n "$2" "$3" || doErrorExit "Create FAT32 filesystem on %s failed" "$3"
-			;;
+	fat32)
+		mkfs -t fat -F 32 -n "$2" "$3" || \
+			doErrorExit "Create FAT32 filesystem on %s failed" "$3"
+		;;
 
-		*)
-			mkfs -t "$1" -L "$2" "$3" || doErrorExit "Create %s filesystem on %s failed" "$1" "$3"
-			;;
+	*)
+		mkfs -t "$1" -L "$2" "$3" || \
+			doErrorExit "Create %s filesystem on %s failed" "$1" "$3"
+		;;
 	esac
 }
 
@@ -176,7 +186,8 @@ doGetAllPartitions() {
 
 	INSTALL_DEVICE_FILE="$(basename "$INSTALL_DEVICE")"
 
-	lsblk -l -n -o NAME -x NAME "$INSTALL_DEVICE" | grep "^$INSTALL_DEVICE_FILE" | grep -v "^$INSTALL_DEVICE_FILE$"
+	lsblk -l -n -o NAME -x NAME "$INSTALL_DEVICE" | \
+		grep "^$INSTALL_DEVICE_FILE" | grep -v "^$INSTALL_DEVICE_FILE$"
 }
 
 doFlush() {
@@ -241,12 +252,13 @@ doUserCloneGitRepo() {
 
 	isUserExists "$_USER"
 
-	doAsUser "$_USER" git clone "$_GIT_URL" "$_TARGET_DIR" || doErrorExit "Clone customizing git repository failed"
+	doAsUser "$_USER" git clone "$_GIT_URL" "$_TARGET_DIR" || \
+		doErrorExit "Clone customizing git repository failed"
 }
 
-# =================================================================================
+# ==============================================================================
 #    S T E P   F U N C T I O N S   B A S E
-# =================================================================================
+# ==============================================================================
 
 doLoadCvsDataConfig() {
 	while IFS=, read -r tag val1 val2; do
@@ -258,7 +270,8 @@ doLoadCvsDataConfig() {
 }
 
 doCheckInstallDevice() {
-	[ ! -b "$INSTALL_DEVICE" ] && doErrorExit "INSTALL_DEVICE is not a block device ('%s')" "$INSTALL_DEVICE"
+	[ ! -b "$INSTALL_DEVICE" ] && \
+		doErrorExit "INSTALL_DEVICE is not a block device ('%s')" "$INSTALL_DEVICE"
 }
 
 doConfirmInstall() {
@@ -294,7 +307,8 @@ doWipeAllPartitions() {
 		if mount -l | grep -q "$INSTALL_DEVICE_PATH/$i"; then
 			local MOUNT_POINT=""
 
-			MOUNT_POINT="$(mount -l | grep "$INSTALL_DEVICE_PATH/$i" | cut -d ' ' -f 3)"
+			MOUNT_POINT="$(mount -l | grep "$INSTALL_DEVICE_PATH/$i" | \
+				cut -d ' ' -f 3)"
 			umount -R "$MOUNT_POINT" 2>/dev/null
 		fi
 		dd if=/dev/zero of="$INSTALL_DEVICE_PATH/$i" bs=1M count=1
@@ -320,20 +334,23 @@ doCreateNewPartitions() {
 
 	case "$BOOT_FILESYSTEM" in
 	fat32)
-		parted -s -a optimal "$INSTALL_DEVICE" mkpart primary "$BOOT_FILESYSTEM" "${START}MiB" "${END}MiB"
+		parted -s -a optimal "$INSTALL_DEVICE" mkpart primary \
+			"$BOOT_FILESYSTEM" "${START}MiB" "${END}MiB"
 		;;
-
 	*)
-		parted -s -a optimal "$INSTALL_DEVICE" mkpart primary "${START}MiB" "${END}MiB"
+		parted -s -a optimal "$INSTALL_DEVICE" mkpart primary \
+			"${START}MiB" "${END}MiB"
 		;;
 	esac
 
 	START="$END"
 	END=$((END + SWAP_SIZE))
-	parted -s -a optimal "$INSTALL_DEVICE" mkpart primary linux-swap "${START}MiB" "${END}MiB"
+	parted -s -a optimal "$INSTALL_DEVICE" mkpart primary linux-swap \
+		"${START}MiB" "${END}MiB"
 
 	START="$END"; END="100%"
-	parted -s -a optimal "$INSTALL_DEVICE" mkpart primary "${START}MiB" "${END}MiB"
+	parted -s -a optimal "$INSTALL_DEVICE" mkpart primary \
+		"${START}MiB" "${END}MiB"
 
 	parted -s -a optimal "$INSTALL_DEVICE" set 1 boot on
 
@@ -371,13 +388,15 @@ doMount() {
 doPacstrap() {
 	BASE_DEVEL=""
 	[ "$INSTALL_BASE_DEVEL" == "yes" ] && BASE_DEVEL="base-devel"
-	pacstrap /mnt base $BASE_DEVEL || doErrorExit "Installation of Arch Linux base failed"
+	pacstrap /mnt base $BASE_DEVEL || \
+		doErrorExit "Installation of Arch Linux base failed"
 
 	doFlush
 }
 
 doGenerateFstab() {
-	genfstab -p -U /mnt >> /mnt/etc/fstab || doErrorExit "Create fstab failed"
+	genfstab -p -U /mnt >> /mnt/etc/fstab || \
+		doErrorExit "Create fstab failed"
 
 	if [ "$OPTIMIZE_FSTAB_NOATIME" == "yes" ]; then
 		sed -i -e "s|relatime|noatime|" /mnt/etc/fstab
@@ -406,9 +425,9 @@ doUnmount() {
 	swapoff "$SWAP_DEVICE"
 }
 
-# =================================================================================
+# ==============================================================================
 #    S T E P   F U N C T I O N S   C H R O O T
-# =================================================================================
+# ==============================================================================
 
 doLoadCvsDataAll() {
 	PACKAGES=()
@@ -434,7 +453,8 @@ doSetHostname() {
 
 doSetTimezone() {
 	[ -L /etc/localtime ] && rm -rf /etc/localtime
-	ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime || doErrorExit "Create timezone link failed"
+	ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime || \
+		doErrorExit "Create timezone link failed"
 }
 
 doEnableLocales() {
@@ -488,7 +508,8 @@ doMkinitcpio() {
 
 doRankmirrors() {
 	mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.dist
-	rankmirrors -n "$RANKMIRRORS_TOP" /etc/pacman.d/mirrorlist.dist | tee /etc/pacman.d/mirrorlist
+	rankmirrors -n "$RANKMIRRORS_TOP" /etc/pacman.d/mirrorlist.dist | \
+		tee /etc/pacman.d/mirrorlist
 }
 
 doSetRootUserEnvironment() {
@@ -641,14 +662,16 @@ doEnableMultilib() {
 
 	pacman -Sy --noconfirm --needed
 
-	[ "$ENABLE_MULTILIB" == "yes" ] && doInstallPackages "$(pacman -Sqg multilib-devel)"
+	[ "$ENABLE_MULTILIB" == "yes" ] && \
+		doInstallPackages "$(pacman -Sqg multilib-devel)"
 }
 
 doAddUser() {
 	# shellcheck disable=SC2153 # USER_NAME is not missspelling
 	[ -z "$USER_NAME" ] && return
 
-	useradd -g "$USER_GROUP" -G "$USER_GROUPS_EXTRA" -s /bin/bash -c "$USER_REALNAME" -m "$USER_NAME"
+	useradd -g "$USER_GROUP" -G "$USER_GROUPS_EXTRA" -s /bin/bash \
+		-c "$USER_REALNAME" -m "$USER_NAME"
 
 	if [ "$USER_SET_PASSWORD" == "yes" ] || ! $TESTRUN; then
 		doSetPassword "$USER_NAME"
@@ -674,36 +697,40 @@ doCloneGits() {
 	local PROJECTS=("$@")
 	[ ${#PROJECTS[@]} -gt 0 ] || return
 
-	[ -z "$GIT_PROJECTS_DIR" ] && doErrorExit "Project directory name for git repositories is empty"
+	[ -z "$GIT_PROJECTS_DIR" ] && \
+		doErrorExit "Project directory name for git repositories is empty"
 	[ ! -d "$GIT_PROJECTS_DIR" ] && doUserMkdir "$USER_NAME" "$GIT_PROJECTS_DIR"
 
 
-	pushd "$USER_HOME/$GIT_PROJECTS_DIR" || doErrorExit "Change directory to '%s' failed" "$USER_HOME/$GIT_PROJECTS_DIR" 
+	pushd "$USER_HOME/$GIT_PROJECTS_DIR" || \
+		doErrorExit "Change directory to '%s' failed" "$USER_HOME/$GIT_PROJECTS_DIR"
 	for PROJECT in "${PROJECTS[@]}"; do
 		GIT_URL=${PROJECT%%|*}
 		GIT_NAME=${PROJECT##*|}
-		doAsUser "$USER_NAME" git clone "$GIT_URL" "$GIT_NAME" || doErrorExit "Clone git repository '%s' failed" "$GIT_URL"
+		doAsUser "$USER_NAME" git clone "$GIT_URL" "$GIT_NAME" || \
+			doErrorExit "Clone git repository '%s' failed" "$GIT_URL"
 	done
 	popd || doErrorExit "Change back directory failed"
 }
 
 doCustomize() {
-	if [ "$CUSTOMIZE" == "yes" ]; then
-		[ -z "$CUSTOMIZE_GIT_URL" ] && doErrorExit "Empty customize git URL"
-		[ -n "$CUSTOMIZE_TARGET_DIR" ] && doUserCloneGitRepo "$USER_NAME" "$CUSTOMIZE_GIT_URL" "$CUSTOMIZE_TARGET_DIR"
+	[ "$CUSTOMIZE" == "yes" ] || return
+	[ -z "$CUSTOMIZE_GIT_URL" ] && doErrorExit "Empty customize git URL"
+	[ -n "$CUSTOMIZE_TARGET_DIR" ] && \
+		doUserCloneGitRepo "$USER_NAME" "$CUSTOMIZE_GIT_URL" "$CUSTOMIZE_TARGET_DIR"
 
-		if [ -n "$CUSTOMIZE_RUN_SCRIPT" ]; then
-			pushd "$CUSTOMIZE_TARGET_DIR" || doErrorExit "Change directory to '%s' failed" "$CUSTOMIZE_TARGET_DIR"
-			# shellcheck disable=SC1090 # source file will be set from configuration file
-			source "$CUSTOMIZE_RUN_SCRIPT" || doErrorExit "Customizing script failed"
-			popd || doErrorExit "Change back directory failed"
-		fi
+	if [ -n "$CUSTOMIZE_RUN_SCRIPT" ]; then
+		pushd "$CUSTOMIZE_TARGET_DIR" || \
+			doErrorExit "Change directory to '%s' failed" "$CUSTOMIZE_TARGET_DIR"
+		# shellcheck disable=SC1090 # source file will be set from configuration file
+		source "$CUSTOMIZE_RUN_SCRIPT" || doErrorExit "Customizing script failed"
+		popd || doErrorExit "Change back directory failed"
 	fi
 }
 
-# =================================================================================
+# ==============================================================================
 #    G E T O P T S
-# =================================================================================
+# ==============================================================================
 
 while getopts :hc:d opt; do
 	case "$opt" in
@@ -732,9 +759,9 @@ while getopts :hc:d opt; do
 done
 shift $((OPTIND - 1))
 
-# =================================================================================
+# ==============================================================================
 #    M A I N
-# =================================================================================
+# ==============================================================================
 
 INSTALL_TARGET="$1"
 
