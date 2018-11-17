@@ -8,6 +8,8 @@ SCRIPT_NAME="${SCRIPT_FILE%.*}"
 AUR_PACKAGE_QUERY_URL="https://aur.archlinux.org/package-query.git"
 AUR_YAOURT_URL="https://aur.archlinux.org/yaourt.git"
 
+TESTRUN=false
+
 # =================================================================================
 #    C O M M O N   F U N C T I O N S
 # =================================================================================
@@ -260,6 +262,7 @@ doCheckInstallDevice() {
 }
 
 doConfirmInstall() {
+	$TESTRUN && return
 	lsblk
 	doPrint "Installing to '$INSTALL_DEVICE' - ALL DATA ON IT WILL BE LOST!"
 	doPrint "Enter 'YES' (in capitals) to confirm and start the installation."
@@ -489,7 +492,7 @@ doRankmirrors() {
 }
 
 doSetRootUserEnvironment() {
-	doSetPassword root
+	$TESTRUN || doSetPassword root
 }
 
 doSetOptimizeIoSchedulerKernel() {
@@ -647,7 +650,7 @@ doAddUser() {
 
 	useradd -g "$USER_GROUP" -G "$USER_GROUPS_EXTRA" -s /bin/bash -c "$USER_REALNAME" -m "$USER_NAME"
 
-	if [ "$USER_SET_PASSWORD" == "yes" ]; then
+	if [ "$USER_SET_PASSWORD" == "yes" ] || ! $TESTRUN; then
 		doSetPassword "$USER_NAME"
 	else
 		passwd -l "$USER_NAME"
@@ -702,7 +705,7 @@ doCustomize() {
 #    G E T O P T S
 # =================================================================================
 
-while getopts :hc: opt; do
+while getopts :hc:d opt; do
 	case "$opt" in
 	h)
 		doPrintHelpMessage
@@ -710,6 +713,9 @@ while getopts :hc: opt; do
 		;;
 	c)
 		CONF_FILE="$OPTARG"
+		;;
+	d)
+		TESTRUN=true
 		;;
 	:)
 		case "$OPTARG" in
