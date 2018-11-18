@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/schmidtandreas/arch-install.svg?branch=master)](https://travis-ci.org/schmidtandreas/arch-install)
 # arch-install
 
 (Forked from/CREDITS to https://github.com/wrzlbrmft/arch-install.)

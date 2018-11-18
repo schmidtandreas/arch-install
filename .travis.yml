@@ -1,0 +1,52 @@
+language: generic
+sudo: required
+dist: xenial
+
+services:
+  - docker
+
+addons:
+  apt:
+    update: true
+    packages:
+    - qemu-kvm
+
+before_script:
+  - lscpu
+  - docker pull base/archlinux
+  - docker run --detach --interactive --tty -v /tmp:/tmp --privileged --name iso_builder base/archlinux bash
+
+  - docker exec --interactive --tty iso_builder sh -c "mkdir /run/shm"
+  - docker exec --interactive --tty iso_builder sh -c "pacman -Sy"
+  - docker exec --interactive --tty iso_builder sh -c "pacman -S archiso --noconfirm"
+  - docker exec --interactive --tty iso_builder sh -c "cp -r /usr/share/archiso/configs/releng/ /archlive"
+
+    # enable ssh at boot
+  - docker exec --interactive --tty iso_builder sh -c "echo \"sed -i 's/#\(PermitEmptyPasswords \).\+/\1yes/' /etc/ssh/sshd_config\" >> /archlive/airootfs/root/customize_airootfs.sh"
+  - docker exec --interactive --tty iso_builder sh -c "echo \"systemctl enable sshd\" >> /archlive/airootfs/root/customize_airootfs.sh"
+
+    # delete archiso_head.cfg include to remove the splash pic
+  - docker exec --interactive --tty iso_builder sh -c "sed -i '1d' /archlive/syslinux/archiso_sys.cfg"
+    # enable autoboot
+  - docker exec --interactive --tty iso_builder sh -c "sed -i '1iPROMPT 0' /archlive/syslinux/archiso_sys.cfg"
+  - docker exec --interactive --tty iso_builder sh -c "sed -i '2iTIMEOUT 20' /archlive/syslinux/archiso_sys.cfg"
+  - docker exec --interactive --tty iso_builder sh -c "sed -i '3iDEFAULT arch64' /archlive/syslinux/archiso_sys.cfg"
+
+    # build and copy new live iso
+  - docker exec --interactive --tty iso_builder sh -c "cd /archlive/ && time ./build.sh -v"
+  - docker exec --interactive --tty iso_builder sh -c "cp /archlive/out/archlinux-*.iso /tmp/archlive.iso"
+
+    # create qemu image
+  - qemu-img create arch-linux.img 10G
+
+    # start vm in background and route ssh port 22 to 10022
+  - qemu-system-x86_64 -hda arch-linux.img -cdrom /tmp/archlive.iso -boot d -m 4096 -net user,hostfwd=tcp::10022-:22 -net nic -daemonize -display none
+
+    # wait until ssh is established
+  - until ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no -p 10022 root@localhost "echo \"hello archlinux\""; do sleep 10; echo "Trying again..."; done
+
+script:
+  - ssh root@localhost -o StrictHostKeyChecking=no -p 10022 "curl -L https://github.com/schmidtandreas/arch-install/archive/master.tar.gz | tar zxvf -"
+  - ssh root@localhost -o StrictHostKeyChecking=no -p 10022 "arch-install-master/arch-install.sh -d -c arch-install-master/configs/andreas_notebook.csv"
+#after_success:
+#  - ls -lha /tmp
