@@ -416,13 +416,14 @@ doGenerateFstab() {
 doBindToChroot() {
 	local CHROOT_SCRIPT_PATH="$SCRIPT_PATH"
 
-	mount --bind "$CHROOT_SCRIPT_PATH" /mnt/root ||\
-		doErrorExit "Bind %s to /mnt/root failed" "$CHROOT_SCRIPT_PATH"
+	mkdir -p /mnt/$CHROOT_SCRIPT_PATH
+	mount --bind "$CHROOT_SCRIPT_PATH" /mnt/$CHROOT_SCRIPT_PATH ||\
+		doErrorExit "Bind %s to /mnt/$CHROOT_SCRIPT_PATH failed" "$CHROOT_SCRIPT_PATH"
 }
 
 doChroot() {
-	local IN_CHROOT_SCRIPT_PATH="/root"
-	local IN_CHROOT_CONF_FILE="$IN_CHROOT_SCRIPT_PATH/$CONF_FILE"
+	local IN_CHROOT_SCRIPT_PATH="$SCRIPT_PATH"
+	local IN_CHROOT_CONF_FILE="$START_PATH/$CONF_FILE"
 
 	arch-chroot /mnt /usr/bin/bash -c \
 		"'$IN_CHROOT_SCRIPT_PATH/$SCRIPT_FILE' -c '$IN_CHROOT_CONF_FILE' $1" ||\
