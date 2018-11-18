@@ -239,7 +239,7 @@ doUserMkdir() {
 doUserSetLocaleLang() {
 	local _USER=$1
 	shift
-	isUserExits "$_USER"
+	isUserExists "$_USER"
 
 	doUserMkdir "$_USER" .config
 	doAsUser "$_USER" echo "$*" >"$USER_HOME/.config/locale.conf"
