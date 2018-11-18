@@ -753,6 +753,9 @@ while getopts :hc:d opt; do
 		;;
 	d)
 		TESTRUN=true
+		# in case of a testrun we also want to get some
+		# debug information
+		set -x
 		;;
 	:)
 		case "$OPTARG" in
