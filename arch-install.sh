@@ -77,7 +77,7 @@ doInstallPackages() {
 doInstallYaourtPackages() {
 	local _USER="$1"
 	shift
-	isUserExist "$_USER"
+	isUserExists "$_USER"
 	local PACKAGES=()
 	IFS=" " read -ra PACKAGES <<< "$@"
 
