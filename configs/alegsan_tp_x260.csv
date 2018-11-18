@@ -5,7 +5,6 @@ C,BOOT_METHOD,legacy
 C,BOOT_FILESYSTEM,ext4
 C,PARTITION_TABLE_TYPE,msdos
 C,ROOT_FILESYSTEM,ext4
-C,LVM_ON_LUKS,no
 C,HOSTNAME,x260
 C,TIMEZONE,Europe/Berlin
 CA,GENERATE_LOCALES,en_US.UTF-8 UTF-8;de_DE.UTF-8 UTF-8
@@ -14,19 +13,17 @@ C,LOCALE_LANG,en_US.UTF-8
 C,CONSOLE_KEYMAP,de-latin1
 C,CONSOLE_FONT,lat9w-16
 C,ROOT_USER_BASH_LOGOUT_CLEAR,no
-C,ADD_HOST_USER,no
-C,ADD_MAIN_USER,yes
-C,MAIN_USER_USERNAME,alegsan
-C,MAIN_USER_REALNAME,Oleg Karfich
-C,MAIN_USER_GROUP,users
-C,MAIN_USER_GROUPS_EXTRA,wheel
-C,MAIN_USER_SET_PASSWORD,yes
-C,MAIN_USER_BASH_LOGOUT_CLEAR,no
-C,MAIN_USER_LOCALE,en_US.UTF-8 UTF-8
-C,MAIN_USER_LOCALE_LANG,en_US.UTF-8
+C,USER_NAME,alegsan
+C,USER_REALNAME,Oleg Karfich
+C,USER_GROUP,users
+C,USER_GROUPS_EXTRA,wheel,storage,power
+C,USER_SET_PASSWORD,yes
+C,USER_SHELL,fish
+C,USER_BASH_LOGOUT_CLEAR,no
+C,USER_LOCALE,en_US.UTF-8 UTF-8
+C,USER_LOCALE_LANG,en_US.UTF-8
 C,RANKMIRRORS,no
 C,RANKMIRRORS,5
-C,INSTALL_DEVICE_SSD_DISCARD,yes
 C,BOOT_LABEL,boot
 C,SWAP_LABEL,swap
 C,ROOT_LABEL,root
@@ -45,7 +42,6 @@ P,docker,
 P,feh,
 P,firefox,
 P,fish,
-P,i3-wm,
 P,i3-gaps,
 P,i3blocks,
 P,i3lock,
@@ -58,18 +54,11 @@ P,gvim,
 P,htop,
 P,lightdm,
 P,lightdm-gtk-greeter,
-P,msmtp,
-P,mesa,
-P,mpc,
-P,mpd,
-P,mutt,
 P,networkmanager,
 P,network-manager-applet,
 P,noto-fonts,
-P,offlineimap,
 P,openssh,
 P,pulseaudio,
-P,py3status,
 P,python,
 P,python-mpd2,
 P,python-pip,
@@ -79,7 +68,6 @@ P,rxvt-unicode,
 P,rxvt-perls,
 P,screen,
 P,sudo,
-P,thunderbird,
 P,tig,
 P,ttf-dejavu,
 P,ttf-liberation,
@@ -100,4 +88,5 @@ S,lightdm,
 S,mpd,
 S,NetworkManager,
 S,sshd,
+S,bluetooth,
 A,urxvt-resize-font-git,
