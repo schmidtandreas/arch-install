@@ -260,6 +260,16 @@ doUserCloneGitRepo() {
 #    S T E P   F U N C T I O N S   B A S E
 # ==============================================================================
 
+doSetPacmanMirrorList() {
+	sed -ie "s|^Server\\(.*\\)|#Server\\1|" /etc/pacman.d/mirrorlist || \
+		doErrorExit "Disable all pacman servers failed"
+
+	sed -ie "/## Germany/{n;s|^#Server\\(.*\\)|Server\\1|}" /etc/pacman.d/mirrorlist || \
+		doErrorExit "Enable pacman server failed"
+
+	pacman -Sy --noconfirm --needed
+}
+
 doLoadCvsDataConfig() {
 	while IFS=, read -r tag val1 val2; do
 		case "$tag" in
@@ -773,6 +783,7 @@ INSTALL_TARGET="$1"
 
 case "$INSTALL_TARGET" in
 	base)
+		doSetPacmanMirrorList
 		doLoadCvsDataConfig
 		doCheckInstallDevice
 		doConfirmInstall
