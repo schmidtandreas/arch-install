@@ -267,6 +267,10 @@ doSetPacmanMirrorList() {
 	sed -ie "/## Germany/{n;s|^#Server\\(.*\\)|Server\\1|}" /etc/pacman.d/mirrorlist || \
 		doErrorExit "Enable pacman server failed"
 
+	pacman-key --init
+	pacman-key --populate
+	pacman-key --refresh-keys
+	pacman -Sy archlinux-keyring --noconfirm --needed
 	pacman -Sy --noconfirm --needed
 }
 
