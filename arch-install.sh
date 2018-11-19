@@ -686,7 +686,7 @@ doAddUser() {
 	useradd -g "$USER_GROUP" -G "$USER_GROUPS_EXTRA" -s /bin/bash \
 		-c "$USER_REALNAME" -m "$USER_NAME"
 
-	if [ "$USER_SET_PASSWORD" == "yes" ] || ! $TESTRUN; then
+	if [ "$USER_SET_PASSWORD" == "yes" ] && [ "$TESTRUN" = false ]; then
 		doSetPassword "$USER_NAME"
 	else
 		passwd -l "$USER_NAME"
