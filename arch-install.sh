@@ -658,6 +658,7 @@ doInstallSudo() {
 
 	chmod u+w /etc/sudoers
 	sed -i -e 's|^#\s*\(%wheel ALL=(ALL) ALL\)$|\1|' /etc/sudoers
+	sed -i -e 's|^#\s*\(%wheel ALL=(ALL) NOPASSWD: ALL\)$|\1|' /etc/sudoers
 
 	cat >>/etc/sudoers <<__END__
 
