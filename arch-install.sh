@@ -420,8 +420,8 @@ doGenerateFstab() {
 doBindToChroot() {
 	local CHROOT_SCRIPT_PATH="$SCRIPT_PATH"
 
-	mkdir -p /mnt/$CHROOT_SCRIPT_PATH
-	mount --bind "$CHROOT_SCRIPT_PATH" /mnt/$CHROOT_SCRIPT_PATH ||\
+	mkdir -p "/mnt/$CHROOT_SCRIPT_PATH"
+	mount --bind "$CHROOT_SCRIPT_PATH" "/mnt/$CHROOT_SCRIPT_PATH" ||\
 		doErrorExit "Bind %s to /mnt/$CHROOT_SCRIPT_PATH failed" "$CHROOT_SCRIPT_PATH"
 }
 
