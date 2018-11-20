@@ -662,7 +662,12 @@ doInstallSudo() {
 
 	chmod u+w /etc/sudoers
 	sed -i -e 's|^#\s*\(%wheel ALL=(ALL) ALL\)$|\1|' /etc/sudoers
-	sed -i -e 's|^#\s*\(%wheel ALL=(ALL) NOPASSWD: ALL\)$|\1|' /etc/sudoers
+
+	# set no passwd only in TESTRUN mode. Otherwise we cant put our skript
+	# to ci tools.
+
+	[ "$TESTRUN" = true ] && \
+		sed -i -e 's|^#\s*\(%wheel ALL=(ALL) NOPASSWD: ALL\)$|\1|' /etc/sudoers
 
 	cat >>/etc/sudoers <<__END__
 
