@@ -719,11 +719,8 @@ doInstallAurPackages () {
 setX11KeyMaps() {
 	[ -z "$X11_KEYMAP_LAYOUT" ] && return
 
-	local X11_KEYMAP=""
-
-	X11_KEYMAP="$X11_KEYMAP_LAYOUT $X11_KEYMAP_MODEL $X11_KEYMAP_VARIANT"
-
-	localectl --no-convert set-x11-keymap "$X11_KEYMAP" || \
+	localectl --no-convert set-x11-keymap "$X11_KEYMAP_LAYOUT" \
+		"$X11_KEYMAP_MODEL" "$X11_KEYMAP_VARIANT" "$X11_KEYMAP_OPTIONS" || \
 		doErrorExit "Set X11 keymap failed"
 }
 
