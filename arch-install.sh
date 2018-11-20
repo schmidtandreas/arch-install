@@ -873,7 +873,7 @@ case "$INSTALL_TARGET" in
 
 		doEnableServices "${SERVICES[@]}"
 
-		setX11KeyMap
+		setX11KeyMaps
 
 		doCustomize
 
