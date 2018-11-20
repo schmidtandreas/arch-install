@@ -723,9 +723,19 @@ doInstallAurPackages () {
 setX11KeyMaps() {
 	[ -z "$X11_KEYMAP_LAYOUT" ] && return
 
-	localectl --no-convert set-x11-keymap "$X11_KEYMAP_LAYOUT" \
-		"$X11_KEYMAP_MODEL" "$X11_KEYMAP_VARIANT" "$X11_KEYMAP_OPTIONS" || \
-		doErrorExit "Set X11 keymap failed"
+	cat > /etc/X11/xorg.conf/00-keyboard.conf <<__END__
+# Written by systemd-localed(8), read by systemd-localed and Xorg. It's
+# probably wise not to edit this file manually. Use localectl(1) to
+# instruct systemd-localed to update it.
+Section "InputClass"
+        Identifier "system-keyboard"
+        MatchIsKeyboard "on"
+        Option "XkbLayout" "$X11_KEYMAP_LAYOUT"
+        Option "XkbModel" "$X11_KEYMAP_MODEL"
+        Option "XkbVariant" "$X11_KEYMAP_VARIANT"
+        Option "XkbOptions" "$X11_KEYMAP_OPTIONS"
+EndSection
+__END__
 }
 
 doCloneGits() {
