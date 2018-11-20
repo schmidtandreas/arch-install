@@ -431,9 +431,8 @@ doChroot() {
 	local IN_CHROOT_TESTRUN_PARAM="$([ "$TESTRUN" = true ] && echo "-d" || echo "")"
 
 	arch-chroot /mnt /usr/bin/bash -c \
-		"'$IN_CHROOT_SCRIPT_PATH/$SCRIPT_FILE' '$IN_CHROOT_TESTRUN_PARAM' \
-			-c '$IN_CHROOT_CONF_FILE' $1" || \
-			doErrorExit "Installation failed and aborted"
+		"'$IN_CHROOT_SCRIPT_PATH/$SCRIPT_FILE' -c '$IN_CHROOT_CONF_FILE' \
+		'$IN_CHROOT_TESTRUN_PARAM' $1" || doErrorExit "Installation failed and aborted"
 }
 
 doUnmount() {
