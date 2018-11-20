@@ -494,9 +494,8 @@ doSetHwclock() {
 }
 
 doSetConsole() {
-	[ -z "$CONSOLE_KEYMAP" ] && return
-	localectl --no-convert set-keymap "$CONSOLE_KEYMAP"
-	cat >> /etc/vconsole.conf << __END__
+	cat > /etc/vconsole.conf << __END__
+KEYMAP=$CONSOLE_KEYMAP
 FONT=$CONSOLE_FONT
 __END__
 }
