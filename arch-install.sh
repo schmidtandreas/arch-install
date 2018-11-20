@@ -711,6 +711,17 @@ doInstallAurPackages () {
 	doInstallYaourtPackages "$USER_NAME" "${PACKAGES[@]}"
 }
 
+setX11KeyMaps() {
+	[ -z "$X11_KEYMAP_LAYOUT" ] && return
+
+	local X11_KEYMAP=""
+
+	X11_KEYMAP="$X11_KEYMAP_LAYOUT $X11_KEYMAP_MODEL $X11_KEYMAP_VARIANT"
+
+	localectl --no-convert set-x11-keymap "$X11_KEYMAP" || \
+		doErrorExit "Set X11 keymap failed"
+}
+
 doCloneGits() {
 	local PROJECTS=("$@")
 	[ ${#PROJECTS[@]} -gt 0 ] || return
@@ -858,6 +869,8 @@ case "$INSTALL_TARGET" in
 		doInstallAurPackages "${AUR_PACKAGES[@]}"
 
 		doEnableServices "${SERVICES[@]}"
+
+		setX11KeyMap
 
 		doCustomize
 
