@@ -242,7 +242,7 @@ doUserSetLocaleLang() {
 	isUserExists "$_USER"
 
 	doUserMkdir "$_USER" .config
-	doAsUser "$_USER" echo "$*" >"$USER_HOME/.config/locale.conf"
+	doAsUser "$_USER" echo "LANG=$*" >"$USER_HOME/.config/locale.conf"
 }
 
 doUserCloneGitRepo() {
