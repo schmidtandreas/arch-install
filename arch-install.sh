@@ -723,6 +723,18 @@ doInstallAurPackages () {
 setX11KeyMaps() {
 	[ -z "$X11_KEYMAP_LAYOUT" ] && return
 
+	X11_KEYMAP_LAYOUT=${X11_KEYMAP_LAYOUT%\"}
+	X11_KEYMAP_LAYOUT=${X11_KEYMAP_LAYOUT#\"}
+
+	X11_KEYMAP_MODEL=${X11_KEYMAP_MODEL%\"}
+	X11_KEYMAP_MODEL=${X11_KEYMAP_MODEL#\"}
+
+	X11_KEYMAP_VARIANT=${X11_KEYMAP_VARIANT%\"}
+	X11_KEYMAP_VARIANT=${X11_KEYMAP_VARIANT#\"}
+
+	X11_KEYMAP_OPTIONS=${X11_KEYMAP_OPTIONS%\"}
+	X11_KEYMAP_OPTIONS=${X11_KEYMAP_OPTIONS#\"}
+
 	cat > /etc/X11/xorg.conf.d/00-keyboard.conf <<__END__
 # Written by systemd-localed(8), read by systemd-localed and Xorg. It's
 # probably wise not to edit this file manually. Use localectl(1) to
