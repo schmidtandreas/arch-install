@@ -475,7 +475,8 @@ doSetTimezone() {
 }
 
 doEnableLocales() {
-	for L in "${GENERATE_LOCALES[@]}"; do
+	IFS=';' read -r -a LOCALES_ARRAY <<< "$GENERATE_LOCALES"
+	for L in "${LOCALES_ARRAY[@]}"; do
 		sed -i -e 's|^#\('"$L"'\)\s*$|\1|' /etc/locale.gen
 	done
 }
