@@ -752,7 +752,7 @@ doCloneGits() {
 	for PROJECT in "${PROJECTS[@]}"; do
 		GIT_URL=${PROJECT%%|*}
 		GIT_NAME=${PROJECT##*|}
-		doAsUser "$USER_NAME" git clone "$GIT_URL" "$GIT_NAME" || \
+		doAsUser "$USER_NAME" git clone "$GIT_URL" ${GIT_NAME:+"$GIT_NAME"} || \
 			doErrorExit "Clone git repository '%s' failed" "$GIT_URL"
 	done
 	popd || doErrorExit "Change back directory failed"
