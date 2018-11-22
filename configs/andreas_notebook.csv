@@ -33,7 +33,7 @@ C,BOOT_LABEL,boot
 C,SWAP_LABEL,swap
 C,ROOT_LABEL,root
 C,INSTALL_BASE_DEVEL,yes
-C,KERNEL_CMDLINE,rw quiet loglevel=3 vga=current acpi_osi="!Windows 2013" acpi_osi=Linux
+C,KERNEL_CMDLINE,rw quiet loglevel=3 vga=current acpi_osi='!Windows 2013' acpi_osi=Linux
 C,YAOURT_USER_NAME,andreas
 C,GIT_PROJECTS_DIR,code/git
 C,CUSTOMIZE,yes
@@ -77,7 +77,7 @@ P,offlineimap,
 P,openssh,
 P,pulseaudio,
 P,pulseaudio-alsa,
-P,py3status
+P,py3status,
 P,python,
 P,python-mpd2,
 P,python-pip,
@@ -85,6 +85,7 @@ P,python2,
 P,rofi,
 P,rxvt-unicode,
 P,screen,
+P,strace,
 P,tig,
 P,ttf-dejavu,
 P,ttf-liberation,
@@ -107,8 +108,8 @@ S,lightdm,
 S,mpd,
 S,NetworkManager,
 S,sshd,
-S,teamviewerd
+S,teamviewerd,
 A,kartina-tv-bin,
 A,urxvt-resize-font-git,
-A,teamviewer
-G,ssh://git@homeserver:1022/andreas/eagle.git,name
+A,teamviewer,
+G,ssh://git@homeserver:1022/andreas/eagle.git,
