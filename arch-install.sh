@@ -21,6 +21,13 @@ doTrim() {
 	echo "$TRIMMED"
 }
 
+trimQuotes() {
+	local TRIMMED="$1"
+	TRIMMED="${TRIMMED#\"}"
+	TRIMMED="${TRIMMED%\"}"
+	echo "$TRIMMED"
+}
+
 doPrintPrompt() {
 	printf "[%s] $*" "$SCRIPT_NAME"
 }
