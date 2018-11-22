@@ -14,10 +14,10 @@ TESTRUN=false
 #    C O M M O N   F U N C T I O N S
 # ==============================================================================
 
-doTrim() {
+trimSpace() {
 	local TRIMMED="$1"
-	TRIMMED="${TRIMMED## }"
-	TRIMMED="${TRIMMED%% }"
+	TRIMMED="${TRIMMED# }"
+	TRIMMED="${TRIMMED% }"
 	echo "$TRIMMED"
 }
 
@@ -25,6 +25,13 @@ trimQuotes() {
 	local TRIMMED="$1"
 	TRIMMED="${TRIMMED#\"}"
 	TRIMMED="${TRIMMED%\"}"
+	echo "$TRIMMED"
+}
+
+trim() {
+	local TRIMMED=""
+	TRIMMED="$(trimQuots "$1")"
+	TRIMMED="$(trimSpace "$TRIMMED")"
 	echo "$TRIMMED"
 }
 
@@ -151,17 +158,20 @@ doEnableServices() {
 
 doSetConfVariable() {
 	local VAR_NAME=""
+	local TRIMMED_VAL=""
 
-	VAR_NAME="$(doTrim "$1")"
+	VAR_NAME="$(trimSpace "$1")"
 	[ -z "$VAR_NAME" ] && doErrorExit "Invalid variable name"
 	shift
-	declare -g "$VAR_NAME"="$*"
+	TRIMMED_VAL="$(trim "$*")"
+	declare -g "$VAR_NAME=$TRIMMED_VAL"
 }
 
 doSetConfArray() {
 	local VAR_NAME=""
+	local TRIMMED_VAL=""
 
-	VAR_NAME="$(doTrim "$1")"
+	VAR_NAME="$(trimSpace "$1")"
 	[ -z "$VAR_NAME" ] && doErrorExit "Invalid array variable name"
 	shift
 	declare -g -a "$VAR_NAME"
@@ -169,7 +179,8 @@ doSetConfArray() {
 	local IFS=\;
 	local I=0
 	for VAL in "$@"; do
-		declare -g "${VAR_NAME[$I]}=$VAL"
+		TRIMMED_VAL="$(trim "$VAL")"
+		declare -g "${VAR_NAME[$I]}=$TRIMMED_VAL"
 		I=$((I + 1))
 	done
 }
@@ -701,10 +712,6 @@ doAddUser() {
 	# shellcheck disable=SC2153 # USER_NAME is not missspelling
 	[ -z "$USER_NAME" ] && return
 
-	# trim of quotations
-	USER_GROUPS_EXTRA=${USER_GROUPS_EXTRA%\"}
-	USER_GROUPS_EXTRA=${USER_GROUPS_EXTRA#\"}
-
 	useradd -g "$USER_GROUP" -G "$USER_GROUPS_EXTRA" -s /bin/bash \
 		-c "$USER_REALNAME" -m "$USER_NAME"
 
@@ -730,18 +737,6 @@ doInstallAurPackages () {
 
 setX11KeyMaps() {
 	[ -z "$X11_KEYMAP_LAYOUT" ] && return
-
-	X11_KEYMAP_LAYOUT=${X11_KEYMAP_LAYOUT%\"}
-	X11_KEYMAP_LAYOUT=${X11_KEYMAP_LAYOUT#\"}
-
-	X11_KEYMAP_MODEL=${X11_KEYMAP_MODEL%\"}
-	X11_KEYMAP_MODEL=${X11_KEYMAP_MODEL#\"}
-
-	X11_KEYMAP_VARIANT=${X11_KEYMAP_VARIANT%\"}
-	X11_KEYMAP_VARIANT=${X11_KEYMAP_VARIANT#\"}
-
-	X11_KEYMAP_OPTIONS=${X11_KEYMAP_OPTIONS%\"}
-	X11_KEYMAP_OPTIONS=${X11_KEYMAP_OPTIONS#\"}
 
 	cat > /etc/X11/xorg.conf.d/00-keyboard.conf <<__END__
 # Written by systemd-localed(8), read by systemd-localed and Xorg. It's
