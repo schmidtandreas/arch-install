@@ -1,4 +1,7 @@
 [![Build Status](https://travis-ci.org/schmidtandreas/arch-install.svg?branch=master)](https://travis-ci.org/schmidtandreas/arch-install)
+
+[![Build Status](http://schmidtandreas.dnshome.de:23056/jenkins/buildStatus/icon?job=arch-install)](http://andreasschmidt.homeip.net:23056/jenkins/job/arch-install/)
+
 # arch-install
 
 (Forked from/CREDITS to https://github.com/wrzlbrmft/arch-install.)
@@ -14,7 +17,6 @@ A highly configurable script installing
 * Supports both BIOS (legacy) and [EFI/UEFI](http://en.wikipedia.org/wiki/Unified_Extensible_Firmware_Interface) boot methods
   * for BIOS: `grub` boot loader
   * for [EFI/UEFI](http://en.wikipedia.org/wiki/Unified_Extensible_Firmware_Interface): choose between `grub` or the `gummiboot` boot loader
-* "One-switch" installation of a fully LVM-on-LUKS encrypted system (also to USB sticks!)
 * `yaourt` installation to install [AUR packages](https://aur.archlinux.org/) right away
 * Xorg installation
 * Optionally install Ubuntu's font rendering (much smoother!)
