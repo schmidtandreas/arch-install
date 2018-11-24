@@ -30,7 +30,7 @@ trimQuotes() {
 
 trim() {
 	local TRIMMED=""
-	TRIMMED="$(trimQuots "$1")"
+	TRIMMED="$(trimQuotes "$1")"
 	TRIMMED="$(trimSpace "$TRIMMED")"
 	echo "$TRIMMED"
 }
