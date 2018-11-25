@@ -255,7 +255,8 @@ setUserHomeDir() {
 
 mkdirAsUser() {
 	[ -z "$USER_HOME" ] && setUserHomeDir "$1"
-	[ ! -d "$USER_HOME/$2" ] && execAsUser "$1" mkdir -p "$USER_HOME/$2"
+	[ ! -d "$USER_HOME/$2" ] && (execAsUser "$1" mkdir -p "$USER_HOME/$2" || \
+		exitError "Create directory '%s' failed" "$USER_HOME/$2")
 }
 
 setLocaleLangAsUser() {
