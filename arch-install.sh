@@ -62,6 +62,17 @@ errorExit() {
 	exit 1
 }
 
+printWarning() {
+	if [ $# -gt 0 ]; then
+		FMT="WARNING: $1\\n"
+		shift
+		# shellcheck disable=SC2059 # FMT is a format string
+		printf "$FMT" "$@"
+	else
+		printf "WARNING: Unknown warning\\n"
+	fi
+}
+
 isUserExists() {
 	getent passwd "$1" 1>/dev/null 2>&1 || \
 		errorExit "User '%s' not exists (called by: %s line: %d)" \
