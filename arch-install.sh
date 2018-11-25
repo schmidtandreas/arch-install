@@ -290,6 +290,10 @@ optimizeMkinitcpioHookBefore() {
 	rm /tmp/mkinitcpio.conf
 }
 
+isTestRun() {
+	[ "$TESTRUN" = true ]
+}
+
 # ==============================================================================
 #    B O O T L O A D E R   I N S T A L L   F U N C T I O N S
 # ==============================================================================
@@ -422,7 +426,7 @@ checkInstallDevice() {
 }
 
 confirmInstall() {
-	$TESTRUN && return
+	isTestRun && return
 	lsblk
 	printLine "Installing to '$INSTALL_DEVICE' - ALL DATA ON IT WILL BE LOST!"
 	printLine "Enter 'YES' (in capitals) to confirm and start the installation."
@@ -563,7 +567,7 @@ archChroot() {
 	local IN_CHROOT_CONF_FILE="$START_PATH/$CONF_FILE"
 	local IN_CHROOT_PARAM="$IN_CHROOT_SCRIPT_PATH/$SCRIPT_FILE -c $IN_CHROOT_CONF_FILE"
 
-	[ "$TESTRUN" = true ] && IN_CHROOT_PARAM+=" -d"
+	isTestRun && IN_CHROOT_PARAM+=" -d"
 
 	arch-chroot /mnt /usr/bin/bash -c "$IN_CHROOT_PARAM $1" || \
 		errorExit "Installation failed and aborted"
@@ -652,7 +656,7 @@ rankingMirrorList() {
 }
 
 setRootUserEnvironment() {
-	$TESTRUN || setPassword root
+	isTestRun || setPassword root
 }
 
 setOptimizeIoSchedulerKernel() {
@@ -689,8 +693,7 @@ installSudo() {
 	# set no passwd only in TESTRUN mode. Otherwise we cant put our skript
 	# to ci tools.
 
-	[ "$TESTRUN" = true ] && \
-		sed -i -e 's|^#\s*\(%wheel ALL=(ALL) NOPASSWD: ALL\)$|\1|' /etc/sudoers
+	isTestRun && sed -i -e 's|^#\s*\(%wheel ALL=(ALL) NOPASSWD: ALL\)$|\1|' /etc/sudoers
 
 	cat >>/etc/sudoers <<__END__
 
@@ -719,7 +722,7 @@ addUser() {
 	useradd -g "$USER_GROUP" -G "$USER_GROUPS_EXTRA" -s /bin/bash \
 		-c "$USER_REALNAME" -m "$USER_NAME"
 
-	if [ "$USER_SET_PASSWORD" == "yes" ] && [ "$TESTRUN" = false ]; then
+	if [ "$USER_SET_PASSWORD" == "yes" ] && ! isTestRun; then
 		setPassword "$USER_NAME"
 	else
 		passwd -l "$USER_NAME"
