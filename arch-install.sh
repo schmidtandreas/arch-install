@@ -588,6 +588,7 @@ loadCvsDataAll() {
 	PACKAGES=()
 	SERVICES=()
 	AUR_PACKAGES=()
+	USERGROUPS=()
 	GIT_PROJECTS=()
 
 	while IFS=, read -r tag val1 val2; do
@@ -597,6 +598,7 @@ loadCvsDataAll() {
 		"P") PACKAGES+=("$val1");;
 		"S") SERVICES+=("$val1");;
 		"A") AUR_PACKAGES+=("$val1");;
+		"UG") USERGROUPS+=("$val1");;
 		"G") GIT_PROJECTS+=("$val1|$val2");;
 		esac
 	done < "$CONF_FILE"
@@ -777,6 +779,17 @@ customize() {
 	fi
 }
 
+addUserGroups() {
+	local GROUPS=("$@")
+	[ ${#GROUPS[@]} -gt 0 ] || return
+
+	isUserExists "$USER_NAME"
+
+	for GROUP in "${GROUPS[@]}"; do
+		usermod -aG "$GROUP" "$USER_NAME"
+	done
+}
+
 cloneGitProjects() {
 	local PROJECTS=("$@")
 	[ ${#PROJECTS[@]} -gt 0 ] || return
@@ -908,11 +921,13 @@ case "$INSTALL_TARGET" in
 
 		installAurPackages "${AUR_PACKAGES[@]}"
 
-		enableServices "${SERVICES[@]}"
-
 		setX11KeyMaps
 
 		customize
+
+		enableServices "${SERVICES[@]}"
+
+		addUserGroups "${USERGROUPS[@]}"
 
 		cloneGitProjects "${GIT_PROJECTS[@]}"
 
