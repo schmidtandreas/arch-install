@@ -530,11 +530,15 @@ formatDevices() {
 }
 
 mountDevices() {
-	mount "$ROOT_DEVICE" /mnt
-	[ ! -d /mnt/boot ] && mkdir /mnt/boot
-	mount "$BOOT_DEVICE" /mnt/boot
+	mount "$ROOT_DEVICE" /mnt || \
+		errorExit "Mount '%s' to '/mnt' failed" "$ROOT_DEVICE"
 
-	swapon "$SWAP_DEVICE"
+	[ ! -d /mnt/boot ] && mkdir /mnt/boot
+	mount "$BOOT_DEVICE" /mnt/boot || \
+		errorExit "Mount '%s' to '/mnt/boot' failed" "$BOOT_DEVICE"
+
+	swapon "$SWAP_DEVICE" || \
+		errorExit "Swap enable failed"
 }
 
 installStrapPackages() {
