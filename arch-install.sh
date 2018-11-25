@@ -720,6 +720,7 @@ addUser() {
 	# shellcheck disable=SC2153 # USER_NAME is not missspelling
 	[ -z "$USER_NAME" ] && return
 
+	# shellcheck disable=SC2153 # USER_GROUP is not missspelling
 	useradd -g "$USER_GROUP" -G "$USER_GROUPS_EXTRA" -s /bin/bash \
 		-c "$USER_REALNAME" -m "$USER_NAME"
 
