@@ -9,9 +9,16 @@ pipeline {
 				checkout scm
 			}
 		}
-		stage('ArchIso') {
+		stage('ArchIso Smart') {
+			agent {
+				docker {
+					image "base/archlinux"
+					args "-u root --privileged -v /tmp:/tmp"
+				}
+			}
 			steps {
-				sh "tests/create_archiso.sh"
+				git 'https://github.com/schmidtandreas/arch-install'
+				sh "./tests/create_archlive.sh"
 			}
 		}
 		stage('Test') {
