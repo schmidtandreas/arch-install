@@ -1,5 +1,7 @@
 #!/bin/bash -x
 
+# This script will be execute in docker container base/archlinux
+
 set -e
 
 mkdir /run/shm
