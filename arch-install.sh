@@ -73,6 +73,14 @@ printWarning() {
 	fi
 }
 
+warnOnTestOrErrorExit() {
+	if isTestRun; then
+		printWarning "$*"
+	else
+		errorExit "$*"
+	fi
+}
+
 isUserExists() {
 	getent passwd "$1" 1>/dev/null 2>&1 || \
 		errorExit "User '%s' not exists (called by: %s line: %d)" \
@@ -820,7 +828,7 @@ cloneGitProjects() {
 		GIT_URL=${PROJECT%%|*}
 		GIT_NAME=${PROJECT##*|}
 		execAsUser "$USER_NAME" git clone "$GIT_URL" ${GIT_NAME:+"$GIT_NAME"} || \
-			errorExit "Clone git repository '%s' failed" "$GIT_URL"
+			warnOnTestOrErrorExit "Clone git repository '%s' failed" "$GIT_URL"
 	done
 	popd || errorExit "Change back directory failed"
 }
