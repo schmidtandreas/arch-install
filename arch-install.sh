@@ -9,6 +9,7 @@ AUR_PACKAGE_QUERY_URL="https://aur.archlinux.org/package-query.git"
 AUR_YAOURT_URL="https://aur.archlinux.org/yaourt.git"
 
 TESTRUN=false
+MOUNTED_DEVICES=false
 
 # ==============================================================================
 #    C O M M O N   F U N C T I O N S
@@ -59,6 +60,9 @@ errorExit() {
 
 	cd "$START_PATH" || \
 		errorExit "Change directory to '%s' failed" "$START_PATH"
+
+	isMountedDevices && unmountDevices
+
 	exit 1
 }
 
@@ -314,6 +318,10 @@ isTestRun() {
 	[ "$TESTRUN" = true ]
 }
 
+isMountedDevices() {
+	[ "$MOUNTED_DEVICES" = true ]
+}
+
 # ==============================================================================
 #    B O O T L O A D E R   I N S T A L L   F U N C T I O N S
 # ==============================================================================
@@ -551,6 +559,8 @@ formatDevices() {
 mountDevices() {
 	mount "$ROOT_DEVICE" /mnt || \
 		errorExit "Mount '%s' to '/mnt' failed" "$ROOT_DEVICE"
+
+	MOUNTED_DEVICES=true
 
 	[ ! -d /mnt/boot ] && mkdir /mnt/boot
 	mount "$BOOT_DEVICE" /mnt/boot || \
