@@ -1,6 +1,4 @@
-[![Build Status](https://travis-ci.org/schmidtandreas/arch-install.svg?branch=master)](https://travis-ci.org/schmidtandreas/arch-install)
-
-[![Build Status](http://schmidtandreas.dnshome.de:23056/jenkins/buildStatus/icon?job=arch-install)](http://andreasschmidt.homeip.net:23056/jenkins/job/arch-install/)
+andreas_notebook.csv [![pipeline status](https://gitlab.com/schmidtandreas/arch-install/badges/master/pipeline.svg)](https://gitlab.com/schmidtandreas/arch-install/commits/master)
 
 # arch-install
 
