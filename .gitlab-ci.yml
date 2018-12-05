@@ -21,7 +21,7 @@ install_andreas:
   script:
     - wget "$ISO_URL" -O archiso.zip
     - unzip archiso.zip && rm archiso.zip
-    - qemu-img create arch-linux.img 5G
+    - qemu-img create arch-linux.img 10G
     - qemu-system-x86_64 -enable-kvm -hda arch-linux.img -cdrom archlinux-*.iso -boot d -m 512 -net user,hostfwd=tcp::10022-:22 -net nic -daemonize -display none
     - until ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no -p 10022 root@localhost "echo \"hello archlinux\""; do sleep 10; echo "Trying again..."; done
     - ssh root@localhost -o StrictHostKeyChecking=no -p 10022 "curl -L https://github.com/schmidtandreas/arch-install/archive/master.tar.gz | tar zxvf -"
