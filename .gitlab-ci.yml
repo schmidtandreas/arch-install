@@ -17,7 +17,8 @@ before_script:
 install_andreas:
   stage: install
   tags:
-    - docker
+  - docker
+  - alegsan
   script:
     - wget "$ISO_URL" -O archiso.zip
     - unzip archiso.zip && rm archiso.zip
