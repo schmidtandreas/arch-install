@@ -6,6 +6,8 @@ ISO_BRANCH="master"
 ISO_JOB="build-archiso"
 ISO_URL="https://gitlab.com/$ISO_NAMESPACE/$ISO_PROJECT/-/jobs/artifacts/$ISO_BRANCH/download?job=$ISO_JOB"
 
+MD5_FILE="https://gitlab.com/$ISO_NAMESPACE/$ISO_PROJECT/-/jobs/artifacts/$ISO_BRANCH/file/md5.txt?job=build-archiso"
+
 ARCH_INSTALL_PROJ="arch-install-gitlab-runner"
 ARCH_INSTALL_URL="curl -L https://gitlab.com/schmidtandreas/arch-install/-/archive/gitlab-runner/$ARCH_INSTALL_PROJ.tar.gz"
 
@@ -16,10 +18,14 @@ get_archiso() {
 
 	[ ! -d "$extract_dir" ] && return 1
 
-	wget "$ISO_URL" -O "$extract_dir/archiso.zip"
-	unzip "$extract_dir/archiso.zip" -d "$extract_dir" && rm "$extract_dir/archiso.zip"
+	wget "$MD5_URL" -O "$extract_dir/current_md5.txt"
 
-	return $?
+	sed -i "s|out/|$extract_dir|" "$extract_dir/current_md5.txt"
+
+	if ! md5sum -c "$extract_dir/current_md5.txt"; then
+		wget "$ISO_URL" -O "$extract_dir/archiso.zip"
+		unzip "$extract_dir/archiso.zip" -d "$extract_dir" && rm "$extract_dir/archiso.zip"
+	fi
 }
 
 wait_for_vm() {
