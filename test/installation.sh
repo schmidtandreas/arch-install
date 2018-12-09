@@ -20,7 +20,7 @@ get_archiso() {
 
 	wget "$MD5_FILE" -O "$extract_dir/current_md5.txt"
 
-	sed -i "s|out/|$extract_dir|" "$extract_dir/current_md5.txt"
+	sed -i "s|out/|$extract_dir/|" "$extract_dir/current_md5.txt"
 
 	if ! md5sum -c "$extract_dir/current_md5.txt"; then
 		wget "$ISO_URL" -O "$extract_dir/archiso.zip"
