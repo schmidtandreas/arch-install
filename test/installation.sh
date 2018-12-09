@@ -17,9 +17,9 @@ get_archiso() {
 	[ ! -d "$extract_dir" ] && return 1
 
 	wget "$ISO_URL" -O "$extract_dir/archiso.zip"
-	unzip -d "$extract_dir $extract_dir/archiso.zip" && rm "$extract_dir/archiso.zip"
+	unzip "$extract_dir/archiso.zip" -d "$extract_dir" && rm "$extract_dir/archiso.zip"
 
-	return 0
+	return $?
 }
 
 wait_for_vm() {
