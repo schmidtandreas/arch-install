@@ -18,7 +18,7 @@ get_archiso() {
 
 	[ ! -d "$extract_dir" ] && return 1
 
-	wget "$MD5_URL" -O "$extract_dir/current_md5.txt"
+	wget "$MD5_FILE" -O "$extract_dir/current_md5.txt"
 
 	sed -i "s|out/|$extract_dir|" "$extract_dir/current_md5.txt"
 
