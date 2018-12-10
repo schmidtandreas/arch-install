@@ -16,6 +16,8 @@ install_andreas:
 
 install_alegsan:
   stage: install
+  only:
+    - master
   tags:
   - docker
   - alegsan
