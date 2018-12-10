@@ -827,6 +827,28 @@ customize() {
 	fi
 }
 
+dotbot() {
+	[ "$DOTBOT" == "yes" ] || return
+	[ -z "$DOTBOT_GIT_URL" ] && errorExit "Empty dotbot git URL"
+	[ -z "$DOTBOT_INSTALL_CMD" ] && errorExit "Empty dotbot installation command"
+	[ -z "$USER_HOME" ] && setUserHomeDir "$USER_HOME"
+
+	installPackages python
+
+	execAsUser "$USER_NAME" git clone "$DOTBOT_GIT_URL" \
+		"$USER_HOME/$DOTBOT_TARGET_DIR" || \
+		errorExit "Clone '%s' failed" "$DOTBOT_GIT_URL"
+
+	pushd "$USER_HOME/$DOTBOT_TARGET_DIR" || \
+		errorExit "Change directory to '%s' failed" "$USER_HOME/$DOTBOT_TARGET_DIR"
+
+	# shellcheck disable=SC2086 # eval not working and double quots either
+	execAsUser "$USER_NAME" $DOTBOT_INSTALL_CMD || \
+		errorExit "Dotbot installation script failed"
+
+	popd || errorExit "Change back directory failed"
+}
+
 addUserGroups() {
 	local GROUPS=("$@")
 	[ ${#GROUPS[@]} -gt 0 ] || return
@@ -972,6 +994,8 @@ case "$INSTALL_TARGET" in
 		setX11KeyMaps
 
 		customize
+
+		dotbot
 
 		enableServices "${SERVICES[@]}"
 
