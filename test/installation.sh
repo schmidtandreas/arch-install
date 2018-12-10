@@ -28,8 +28,8 @@ get_archiso() {
 		rm /tmp/archlinux-*.iso
 		wget "$ISO_URL" -O "$extract_dir/archiso.zip"
 		unzip -o "$extract_dir/archiso.zip" -d "$extract_dir"
-		rm "$extract_dir/archiso.zip"
-		rm "$extract_dir/md5.txt"
+		rm -rf "$extract_dir/archiso.zip"
+		rm -rf "$extract_dir/md5.txt"
 	fi
 }
 
