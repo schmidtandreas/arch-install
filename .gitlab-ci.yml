@@ -12,7 +12,7 @@ install_andreas:
   tags:
   - docker
   - andreas
-  script: bash test/installation.sh andreas_notebook.csv
+  script: bash -x test/installation.sh andreas_notebook.csv
 
 install_alegsan:
   stage: install
