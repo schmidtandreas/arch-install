@@ -54,7 +54,7 @@ wait_for_vm() {
 [ ! -f "configs/$1" ] && exit 1
 
 if ! get_archiso /tmp; then
-	echo "ERROR: could not connect to vm"
+	echo "ERROR: could not get archiso image"
 	exit 1
 fi
 
