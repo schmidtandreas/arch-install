@@ -23,8 +23,11 @@ get_archiso() {
 	sed -i "s|out/|$extract_dir/|" "$extract_dir/current_md5.txt"
 
 	if ! md5sum -c "$extract_dir/current_md5.txt"; then
+		# clean up previous images
+		rm /tmp/archlinux-*.iso
 		wget "$ISO_URL" -O "$extract_dir/archiso.zip"
-		unzip -o "$extract_dir/archiso.zip" -d "$extract_dir" && rm "$extract_dir/archiso.zip"
+		unzip -o "$extract_dir/archiso.zip" -d "$extract_dir"
+		rm "$extract_dir/archiso.zip"
 	fi
 }
 
