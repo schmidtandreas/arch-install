@@ -534,7 +534,7 @@ createNewPartitions() {
 	parted -s -a optimal "$INSTALL_DEVICE" set 1 boot on
 
 	flush
-	partProbe
+	partProbe && partProbe
 }
 
 detectDevices() {
