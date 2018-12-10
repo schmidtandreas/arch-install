@@ -19,4 +19,4 @@ install_alegsan:
   tags:
   - docker
   - alegsan
-  script: bash test/installation.sh alegsan_tp_x260.csv
+  script: bash -x test/installation.sh alegsan_tp_x260.csv
