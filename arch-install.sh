@@ -242,7 +242,12 @@ flush() {
 }
 
 partProbe() {
-	partprobe "$INSTALL_DEVICE"
+	local attempts=3
+
+	while ! partprobe "$INSTALL_DEVICE"; do
+		attempts=$((attempts - 1))
+		[ $attempts -le 0 ] && errorExit "partprobe failed"
+	done
 }
 
 detectRootUuid() {
@@ -534,7 +539,7 @@ createNewPartitions() {
 	parted -s -a optimal "$INSTALL_DEVICE" set 1 boot on
 
 	flush
-	partProbe && partProbe
+	partProbe
 }
 
 detectDevices() {
