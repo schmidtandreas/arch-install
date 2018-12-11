@@ -543,6 +543,9 @@ detectDevices() {
 
 	mapfile -t ALL_PARTITIONS < <(getAllPartitions)
 
+	[ "${#ALL_PARTITIONS[@]}" -eq 3 ] || \
+		errorExit "Invalid amount of partitions"
+
 	INSTALL_DEVICE_PATH="$(dirname "$INSTALL_DEVICE")"
 
 	BOOT_DEVICE="$INSTALL_DEVICE_PATH/${ALL_PARTITIONS[0]}"
