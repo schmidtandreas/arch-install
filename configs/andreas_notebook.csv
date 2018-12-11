@@ -41,6 +41,7 @@ C,DOTBOT_GIT_URL,https://gitlab.com/schmidtandreas/dotfiles.git
 C,DOTBOT_TARGET_DIR,.dotbot
 C,DOTBOT_INSTALL_CMD,./install -c install-notebook.yaml
 P,alsa-utils,
+P,archey3,
 P,archlinux-wallpaper,
 P,awesome-terminal-fonts,
 P,bluez,
