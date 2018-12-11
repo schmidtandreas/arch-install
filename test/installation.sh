@@ -9,7 +9,7 @@ ISO_URL="https://gitlab.com/$ISO_NAMESPACE/$ISO_PROJECT/-/jobs/artifacts/$ISO_BR
 MD5_FILE="https://gitlab.com/$ISO_NAMESPACE/$ISO_PROJECT/-/jobs/artifacts/$ISO_BRANCH/file/md5.txt?job=build-archiso"
 
 ARCH_INSTALL_PROJ="arch-install-gitlab-runner"
-ARCH_INSTALL_URL="curl -L https://gitlab.com/schmidtandreas/arch-install/-/archive/gitlab-runner/$ARCH_INSTALL_PROJ.tar.gz"
+ARCH_INSTALL_URL="https://gitlab.com/schmidtandreas/arch-install/-/archive/gitlab-runner/$ARCH_INSTALL_PROJ.tar.gz"
 
 SSH_COMMAND="ssh root@localhost -o StrictHostKeyChecking=no -p 10022"
 
