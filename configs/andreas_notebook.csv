@@ -39,7 +39,7 @@ C,GIT_PROJECTS_DIR,code/git
 C,DOTBOT,yes
 C,DOTBOT_GIT_URL,https://gitlab.com/schmidtandreas/dotfiles.git
 C,DOTBOT_TARGET_DIR,.dotbot
-C,DOTBOT_INSTALL_CMD,./install -c install-notebook.yaml
+C,DOTBOT_INSTALL_CMD,./install -v -c install-notebook.yaml
 P,alsa-utils,
 P,archey3,
 P,archlinux-wallpaper,
