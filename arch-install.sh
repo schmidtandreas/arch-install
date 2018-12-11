@@ -425,7 +425,7 @@ installEfiBootloader() {
 	case "$EFI_BOOT_LOADER" in
 	grub)
 		installGrubEfi
-		[ ! -z "$EFI_STARTUP_NSH" ] && createEfiStartupNsh
+		[ -n "$EFI_STARTUP_NSH" ] && createEfiStartupNsh
 		editGrubConfig
 		generateGrubConfig
 		;;
