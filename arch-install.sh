@@ -874,7 +874,8 @@ cloneGitProjects() {
 	for PROJECT in "${PROJECTS[@]}"; do
 		GIT_URL=${PROJECT%%|*}
 		GIT_NAME=${PROJECT##*|}
-		execAsUser "$USER_NAME" git clone "$GIT_URL" ${GIT_NAME:+"$GIT_NAME"} || \
+		GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+		execAsUser "$USER_NAME" GIT_SSH_COMMAND="$GIT_SSH_COMMAND" git clone "$GIT_URL" ${GIT_NAME:+"$GIT_NAME"} || \
 			warnOnTestOrErrorExit "Clone git repository '%s' failed" "$GIT_URL"
 	done
 	popd || errorExit "Change back directory failed"
