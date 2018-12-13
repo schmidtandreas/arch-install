@@ -256,21 +256,28 @@ detectRootUuid() {
 
 setPassword() {
 	local PW_USER="root"
+	local RET=1
 
 	[ -n "$1" ] && PW_USER="$1"
 
 	printLine "Setting password for user '$PW_USER'"
-	local TRIES=0
-	while [ $TRIES -lt 3 ]; do
-		passwd "$PW_USER"
-		local RET=$?
-		if [ $RET -eq 0 ]; then
-			TRIES=3
-		else
-			printLine "Set password failed, try again"
-		fi
-		TRIES=$((TRIES + 1))
-	done
+
+	if isTestRun; then
+		echo -e "password\npassword" | passwd "$PW_USER"
+		RET=$?
+	else
+		local TRIES=0
+		while [ $TRIES -lt 3 ]; do
+			passwd "$PW_USER"
+			RET=$?
+			if [ $RET -eq 0 ]; then
+				TRIES=3
+			else
+				printLine "Set password failed, try again"
+			fi
+			TRIES=$((TRIES + 1))
+		done
+	fi
 
 	return $RET
 }
@@ -700,7 +707,7 @@ rankingMirrorList() {
 }
 
 setRootUserEnvironment() {
-	isTestRun || setPassword root
+	setPassword root
 }
 
 setOptimizeIoSchedulerKernel() {
@@ -767,7 +774,7 @@ addUser() {
 	useradd -g "$USER_GROUP" -G "$USER_GROUPS_EXTRA" -s /bin/bash \
 		-c "$USER_REALNAME" -m "$USER_NAME"
 
-	if [ "$USER_SET_PASSWORD" == "yes" ] && ! isTestRun; then
+	if [ "$USER_SET_PASSWORD" == "yes" ]; then
 		setPassword "$USER_NAME"
 	else
 		passwd -l "$USER_NAME"
