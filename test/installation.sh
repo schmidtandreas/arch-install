@@ -75,7 +75,8 @@ if ! qemu-system-x86_64 -enable-kvm \
 		   -net user,hostfwd=tcp::10022-:22 \
 		   -net nic \
 		   -daemonize \
-		   -display none; then
+		   -display none \
+		   -bios /usr/share/ovmf/bios.bin; then
 	echo "ERROR: could not start vm"
 	exit 1
 fi

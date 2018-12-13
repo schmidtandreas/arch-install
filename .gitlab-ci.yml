@@ -5,7 +5,7 @@ stages:
 
 before_script:
   - apk update
-  - apk add qemu-system-x86_64 qemu-img openssh bash
+  - apk add qemu-system-x86_64 qemu-img openssh bash ovmf
 
 install_andreas:
   stage: install
