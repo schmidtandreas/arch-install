@@ -8,7 +8,7 @@ ISO_URL="https://gitlab.com/$ISO_NAMESPACE/$ISO_PROJECT/-/jobs/artifacts/$ISO_BR
 
 MD5_FILE="https://gitlab.com/$ISO_NAMESPACE/$ISO_PROJECT/-/jobs/artifacts/$ISO_BRANCH/file/md5.txt?job=build-archiso"
 
-ARCH_BRANCH="dotbot"
+ARCH_BRANCH="master"
 ARCH_INSTALL_PROJ="arch-install-$ARCH_BRANCH"
 ARCH_INSTALL_URL="curl -L https://gitlab.com/schmidtandreas/arch-install/-/archive/$ARCH_BRANCH/$ARCH_INSTALL_PROJ.tar.gz"
 
