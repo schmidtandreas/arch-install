@@ -119,3 +119,6 @@ UG,kvm,
 UG,uucp,
 UG,audio,
 G,ssh://git@homeserver:1022/andreas/eagle.git,
+G,ssh://git@homeserver:1022/andreas/tools.git,
+G,ssh://git@homeserver:1022/andreas/gartenctl.git,
+G,ssh://git@homeserver:1022/andreas/OSELAS.BSP-Beaglebone.git
