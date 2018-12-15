@@ -185,6 +185,7 @@ enableServices() {
 
 enableUserServices() {
 	local _USER="$1"
+	shift
 
 	for SERVICE in "$@"; do
 		execAsUser "$_USER" systemctl --user enable "$SERVICE" || \
