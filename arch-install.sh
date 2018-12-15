@@ -647,7 +647,7 @@ loadCvsDataAll() {
 	SERVICES=()
 	USER_SERVICES=()
 	AUR_PACKAGES=()
-	USERGROUPS=()
+	USER_GROUPS=()
 	GIT_PROJECTS=()
 
 	while IFS=, read -r tag val1 val2; do
@@ -658,7 +658,7 @@ loadCvsDataAll() {
 		"S") SERVICES+=("$val1");;
 		"US") USER_SERVICES+=("$val1");;
 		"A") AUR_PACKAGES+=("$val1");;
-		"UG") USERGROUPS+=("$val1");;
+		"UG") USER_GROUPS+=("$val1");;
 		"G") GIT_PROJECTS+=("$val1|$val2");;
 		esac
 	done < "$CONF_FILE"
@@ -870,12 +870,12 @@ dotbot() {
 }
 
 addUserGroups() {
-	local GROUPS=("$@")
-	[ ${#GROUPS[@]} -gt 0 ] || return
+	local _GROUPS=("$@")
+	[ ${#_GROUPS[@]} -gt 0 ] || return
 
 	isUserExists "$USER_NAME"
 
-	for GROUP in "${GROUPS[@]}"; do
+	for GROUP in "${_GROUPS[@]}"; do
 		usermod -aG "$GROUP" "$USER_NAME"
 	done
 }
@@ -1022,7 +1022,7 @@ case "$INSTALL_TARGET" in
 
 		enableUserServices "$USER_NAME" "${USER_SERVICES[@]}"
 
-		addUserGroups "${USERGROUPS[@]}"
+		addUserGroups "${USER_GROUPS[@]}"
 
 		cloneGitProjects "${GIT_PROJECTS[@]}"
 
