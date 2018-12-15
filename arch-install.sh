@@ -814,17 +814,25 @@ __END__
 
 customize() {
 	[ "$CUSTOMIZE" == "yes" ] || return
-	[ -z "$CUSTOMIZE_GIT_URL" ] && errorExit "Empty customize git URL"
-	[ -n "$CUSTOMIZE_TARGET_DIR" ] && \
-		cloneGitRepoAsUser "$USER_NAME" "$CUSTOMIZE_GIT_URL" "$CUSTOMIZE_TARGET_DIR"
+	[ -n "$CUSTOMIZE_GIT_URL" ] || errorExit "Empty customize git URL"
+	[ -n "$CUSTOMIZE_TARGET_DIR" ] || errorExit "Empty cusomize target directory"
+	[ ! -d "$CUSTOMIZE_TARGET_DIR" ] || \
+		errorExit "Customize target directory already exists"
+	[ -n "$CUSTOMIZE_RUN_SCRIPT" ] || errorExit "Empty customize script"
 
-	if [ -n "$CUSTOMIZE_RUN_SCRIPT" ]; then
-		pushd "$CUSTOMIZE_TARGET_DIR" || \
-			errorExit "Change directory to '%s' failed" "$CUSTOMIZE_TARGET_DIR"
-		# shellcheck disable=SC1090 # source file will be set from configuration file
-		source "$CUSTOMIZE_RUN_SCRIPT" || errorExit "Customizing script failed"
+	[ ! -d "$(dirname "$CUSTOMIZE_TARGET_DIR")" ] && \
+		mkdir -p "$(dirname "$CUSTOMIZE_TARGET_DIR")"
+
+	git clone "$CUSTOMIZE_GIT_URL" "$CUSTOMIZE_TARGET_DIR" || \
+		errorExit "Clone customize git repo failed"
+
+	pushd "$CUSTOMIZE_TARGET_DIR" || \
+		errorExit "Change directory to '%s' failed" "$CUSTOMIZE_TARGET_DIR"
+	# shellcheck disable=SC1090 # source file will be set from configuration file
+	source "$CUSTOMIZE_RUN_SCRIPT" || errorExit "Run customizing script failed"
 		popd || errorExit "Change back directory failed"
-	fi
+
+	rm -rf "$CUSTOMIZE_TARGET_DIR"
 }
 
 dotbot() {
