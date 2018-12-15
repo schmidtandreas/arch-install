@@ -183,6 +183,15 @@ enableServices() {
 	done
 }
 
+enableUserServices() {
+	local _USER="$1"
+
+	for SERVICE in "$@"; do
+		execAsUser "$_USER" systemctl --user enable "$SERVICE" || \
+			errorExit "Enable systemd user service '%s' failed" "$SERVICE"
+	done
+}
+
 setConfVariable() {
 	local VAR_NAME=""
 	local TRIMMED_VAL=""
@@ -635,6 +644,7 @@ unmountDevices() {
 loadCvsDataAll() {
 	PACKAGES=()
 	SERVICES=()
+	USER_SERVICES=()
 	AUR_PACKAGES=()
 	USERGROUPS=()
 	GIT_PROJECTS=()
@@ -645,6 +655,7 @@ loadCvsDataAll() {
 		"CA") setConfArray "$val1" "$val2";;
 		"P") PACKAGES+=("$val1");;
 		"S") SERVICES+=("$val1");;
+		"US") USER_SERVICES+=("$val1");;
 		"A") AUR_PACKAGES+=("$val1");;
 		"UG") USERGROUPS+=("$val1");;
 		"G") GIT_PROJECTS+=("$val1|$val2");;
@@ -1007,6 +1018,8 @@ case "$INSTALL_TARGET" in
 		dotbot
 
 		enableServices "${SERVICES[@]}"
+
+		enableUserServices "$USER_NAME" "${USER_SERVICES[@]}"
 
 		addUserGroups "${USERGROUPS[@]}"
 
