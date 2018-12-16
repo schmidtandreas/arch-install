@@ -37,6 +37,7 @@ C,GIT_PROJECTS_DIR,workspace/git
 P,alsa-utils,
 P,archlinux-wallpaper,
 P,awesome-terminal-fonts,
+P,bash-completion,
 P,bluez,
 P,bluez-utils,
 P,compton,
