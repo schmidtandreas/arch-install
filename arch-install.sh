@@ -783,7 +783,7 @@ addUser() {
 	[ -z "$USER_NAME" ] && return
 
 	# shellcheck disable=SC2153 # USER_GROUP is not missspelling
-	useradd -g "$USER_GROUP" -G "$USER_GROUPS_EXTRA" -s /bin/bash \
+	useradd -g "$USER_GROUP" -G "$USER_GROUPS_EXTRA" -s "$USER_SHELL" \
 		-c "$USER_REALNAME" -m "$USER_NAME"
 
 	if [ "$USER_SET_PASSWORD" == "yes" ]; then
