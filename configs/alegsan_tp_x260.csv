@@ -41,7 +41,7 @@ C,CUSTOMIZE_RUN_SCRIPT,customize_arch_linux.sh
 C,DOTBOT,yes
 C,DOTBOT_GIT_URL,https://gitlab.com/alegsan/dotfiles.git
 C,DOTBOT_TARGET_DIR,.dotfiles
-C,DOTBOT_INSTALL_CMD,./install -v -c install-notebook.yaml
+C,DOTBOT_INSTALL_CMD,./install -v -c install.conf.yaml
 P,alsa-utils,
 P,awesome-terminal-fonts,
 P,bash-completion,
