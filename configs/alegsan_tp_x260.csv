@@ -34,8 +34,15 @@ C,SWAP_LABEL,swap
 C,ROOT_LABEL,root
 C,INSTALL_BASE_DEVEL,yes
 C,GIT_PROJECTS_DIR,workspace/git
+C,CUSTOMIZE,no
+C,CUSTOMIZE_GIT_URL,http://myurl/git.git
+C,CUSTOMIZE_TARGET_DIR,/tmp/tools
+C,CUSTOMIZE_RUN_SCRIPT,customize_arch_linux.sh
+C,DOTBOT,yes
+C,DOTBOT_GIT_URL,https://gitlab.com/alegsan/dotfiles.git
+C,DOTBOT_TARGET_DIR,.dotfiles
+C,DOTBOT_INSTALL_CMD,./install -v -c install-notebook.yaml
 P,alsa-utils,
-P,archlinux-wallpaper,
 P,awesome-terminal-fonts,
 P,bash-completion,
 P,bluez,
@@ -47,7 +54,6 @@ P,dialog,
 P,docker,
 P,feh,
 P,firefox,
-P,fish,
 P,i3-gaps,
 P,i3blocks,
 P,i3lock,
@@ -96,4 +102,3 @@ S,NetworkManager,
 S,sshd,
 S,bluetooth,
 A,urxvt-resize-font-git,
-G,git@gitlab.com:alegsan/dotfiles.git,
