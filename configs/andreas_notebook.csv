@@ -1,4 +1,4 @@
-C,INSTALL_DEVICE,/dev/sda
+C,INSTALL_DEVICE,/dev/nvme0n1
 C,BOOT_SIZE,1024
 C,SWAP_SIZE,4096
 C,BOOT_METHOD,efi
@@ -125,5 +125,5 @@ UG,uucp,
 UG,audio,
 G,ssh://git@homeserver:1022/andreas/eagle.git,
 G,ssh://git@homeserver:1022/andreas/tools.git,
-G,ssh://git@homeserver:1022/andreas/gartenctl.git,
+G,ssh://git@homeserver:1022/andreas/gardenctl.git,
 G,ssh://git@homeserver:1022/andreas/OSELAS.BSP-Beaglebone.git
