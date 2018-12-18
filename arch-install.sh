@@ -664,6 +664,8 @@ loadCvsDataAll() {
 		"G") GIT_PROJECTS+=("$val1|$val2");;
 		esac
 	done < "$CONF_FILE"
+
+	isTestRun && INSTALL_DEVICE="/dev/sda"
 }
 
 setHostname() {
