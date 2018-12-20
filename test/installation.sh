@@ -67,7 +67,7 @@ fi
 # directory is binded to the host /tmp directory to analyze the
 # finished installation on the host maschine.
 [ -f /tmp/arch-linux.img ] && rm /tmp/arch-linux.img
-qemu-img create /tmp/arch-linux.img 10G
+qemu-img create /tmp/arch-linux.img 15G
 
 # start iso image
 if ! qemu-system-x86_64 -enable-kvm \
