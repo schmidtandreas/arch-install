@@ -528,7 +528,9 @@ wipeDevice() {
 }
 
 createNewPartitionTable() {
-	parted -s -a optimal "$INSTALL_DEVICE" mklabel "$PARTITION_TABLE_TYPE"
+	parted -s -a optimal "$INSTALL_DEVICE" mklabel "$PARTITION_TABLE_TYPE" || \
+		errorExit "Create new partition table of type '%s' failed" \
+		"$PARTITION_TABLE_TYPE"
 }
 
 createNewPartitions() {
@@ -538,24 +540,30 @@ createNewPartitions() {
 	case "$BOOT_FILESYSTEM" in
 	fat32)
 		parted -s -a optimal "$INSTALL_DEVICE" mkpart primary \
-			"$BOOT_FILESYSTEM" "${START}MiB" "${END}MiB"
+			"$BOOT_FILESYSTEM" "${START}MiB" "${END}MiB" || \
+			errorExit "Create boot partition for filesystem 'fat32' failed"
 		;;
 	*)
 		parted -s -a optimal "$INSTALL_DEVICE" mkpart primary \
-			"${START}MiB" "${END}MiB"
+			"${START}MiB" "${END}MiB" || \
+			errorExit "Create boot partition for filesystem '%s' failed" \
+			"$BOOT_FILESYSTEM"
 		;;
 	esac
 
 	START="$END"
 	END=$((END + SWAP_SIZE))
 	parted -s -a optimal "$INSTALL_DEVICE" mkpart primary linux-swap \
-		"${START}MiB" "${END}MiB"
+		"${START}MiB" "${END}MiB" || \
+		errorExit "Create swap partition failed"
 
 	START="$END"; END="100%"
 	parted -s -a optimal "$INSTALL_DEVICE" mkpart primary \
-		"${START}MiB" "${END}MiB"
+		"${START}MiB" "${END}MiB" || \
+		errorExit "Create root partition failed"
 
-	parted -s -a optimal "$INSTALL_DEVICE" set 1 boot on
+	parted -s -a optimal "$INSTALL_DEVICE" set 1 boot on || \
+		errorExit "Set boot flag on '%s' failed" "$INSTALL_DEVICE"
 
 	flush
 	partProbe
