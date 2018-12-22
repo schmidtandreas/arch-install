@@ -238,11 +238,14 @@ createFileSystem() {
 
 getAllPartitions() {
 	local INSTALL_DEVICE_FILE=""
+	local BLK=""
 
 	INSTALL_DEVICE_FILE="$(basename "$INSTALL_DEVICE")"
 
-	lsblk -l -n -o NAME -x NAME "$INSTALL_DEVICE" | \
-		grep "^$INSTALL_DEVICE_FILE" | grep -v "^$INSTALL_DEVICE_FILE$"
+	BLK="$(lsblk -l -n -o NAME -x NAME "$INSTALL_DEVICE")" || \
+		errorExit "Get list of block devices failed"
+
+	echo "$BLK" | grep "^$INSTALL_DEVICE_FILE" | grep -v "^$INSTALL_DEVICE_FILE$"
 }
 
 flush() {
