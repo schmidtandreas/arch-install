@@ -71,7 +71,7 @@ qemu-img create /tmp/arch-linux.img 15G
 
 # start iso image
 if ! qemu-system-x86_64 -enable-kvm \
-		   -hda /tmp/arch-linux.img \
+		   -drive file=/tmp/arch-linux.img,index=0,media=disk,format=raw \
 		   -cdrom /tmp/archlinux-*.iso \
 		   -boot d \
 		   -m 512 \
