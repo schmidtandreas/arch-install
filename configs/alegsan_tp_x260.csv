@@ -20,7 +20,7 @@ C,ROOT_USER_BASH_LOGOUT_CLEAR,no
 C,USER_NAME,alegsan
 C,USER_REALNAME,Oleg Karfich
 C,USER_GROUP,users
-C,USER_GROUPS_EXTRA,"wheel,storage,power"
+C,USER_GROUPS_EXTRA,"wheel,storage,power,lp"
 C,USER_SET_PASSWORD,yes
 C,USER_SHELL,/bin/bash
 C,USER_BASH_LOGOUT_CLEAR,no
@@ -44,6 +44,7 @@ C,DOTBOT_INSTALL_CMD,./install -v -c install.conf.yaml
 P,alsa-utils,
 P,awesome-terminal-fonts,
 P,bash-completion,
+P,blueman,
 P,bluez,
 P,bluez-utils,
 P,compton,
