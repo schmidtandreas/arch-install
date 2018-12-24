@@ -248,7 +248,7 @@ getAllPartitions() {
 			grep "^$INSTALL_DEVICE_FILE" | grep -v "^$INSTALL_DEVICE_FILE$" )"
 
 		attempts=$((attempts - 1))
-		[ $attempts -le 0 ] && errorExit "Get partitions failed"
+		[ $attempts -le 0 ] && break
 	done
 
 	echo "$BLK"
