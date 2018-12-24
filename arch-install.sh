@@ -239,13 +239,19 @@ createFileSystem() {
 getAllPartitions() {
 	local INSTALL_DEVICE_FILE=""
 	local BLK=""
+	local attempts=3
 
 	INSTALL_DEVICE_FILE="$(basename "$INSTALL_DEVICE")"
 
-	BLK="$(lsblk -l -n -o NAME -x NAME "$INSTALL_DEVICE")" || \
-		errorExit "Get list of block devices failed"
+	while [ "$(wc -w <<<$BLK)" -ne 3 ]; do
+		BLK="$(lsblk -l -n -o NAME -x NAME "$INSTALL_DEVICE" | \
+			grep "^$INSTALL_DEVICE_FILE" | grep -v "^$INSTALL_DEVICE_FILE$" )"
 
-	echo "$BLK" | grep "^$INSTALL_DEVICE_FILE" | grep -v "^$INSTALL_DEVICE_FILE$"
+		attempts=$((attempts - 1))
+		[ $attempts -le 0 ] && errorExit "Get partitions failed"
+	done
+
+	echo "$BLK"
 }
 
 flush() {
