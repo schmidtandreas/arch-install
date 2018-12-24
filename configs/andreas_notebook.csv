@@ -44,6 +44,7 @@ C,DOTBOT_GIT_URL,https://gitlab.com/schmidtandreas/dotfiles.git
 C,DOTBOT_TARGET_DIR,.dotbot
 C,DOTBOT_INSTALL_CMD,./install -v -c install-notebook.yaml
 P,alsa-utils,
+P,arandr,
 P,archey3,
 P,archlinux-wallpaper,
 P,aspell-de,
@@ -65,6 +66,7 @@ P,i3-wm,
 P,i3blocks,
 P,i3lock,
 P,i3status,
+P,imagemagick,
 P,intel-ucode,
 P,iw,
 P,git,
