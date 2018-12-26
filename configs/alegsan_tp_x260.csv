@@ -41,6 +41,7 @@ C,DOTBOT,yes
 C,DOTBOT_GIT_URL,https://gitlab.com/alegsan/dotfiles.git
 C,DOTBOT_TARGET_DIR,.dotfiles
 C,DOTBOT_INSTALL_CMD,./install -v -c install.conf.yaml
+P,acpi,
 P,alsa-utils,
 P,awesome-terminal-fonts,
 P,bash-completion,
