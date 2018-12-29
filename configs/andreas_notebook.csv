@@ -36,12 +36,11 @@ C,KERNEL_CMDLINE,rw quiet loglevel=3 vga=current acpi_osi='!Windows 2013' acpi_o
 C,YAOURT_USER_NAME,andreas
 C,GIT_PROJECTS_DIR,code/git
 C,CUSTOMIZE,yes
-C,CUSTOMIZE_GIT_URL,http://homeserver/gitlab/andreas/tools.git
-C,CUSTOMIZE_TARGET_DIR,/tmp/tools
+C,CUSTOMIZE_GIT_URL,https://gitlab.com/schmidtandreas/dotfiles.git
+C,CUSTOMIZE_TARGET_DIR,.dotfiles
 C,CUSTOMIZE_RUN_SCRIPT,customize_arch_linux.sh
 C,DOTBOT,yes
-C,DOTBOT_GIT_URL,https://gitlab.com/schmidtandreas/dotfiles.git
-C,DOTBOT_TARGET_DIR,.dotfiles
+C,DOTBOT_USE_AS_CUSTOMIZE_GIT,yes
 C,DOTBOT_INSTALL_CMD,./install -v -c install-notebook.yaml
 P,alsa-utils,
 P,arandr,

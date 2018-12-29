@@ -846,6 +846,9 @@ __END__
 }
 
 customize() {
+	local CLONE_AS_USER=""
+	local TARGET_DIR=""
+
 	[ "$CUSTOMIZE" == "yes" ] || return
 	[ -n "$CUSTOMIZE_GIT_URL" ] || errorExit "Empty customize git URL"
 	[ -n "$CUSTOMIZE_TARGET_DIR" ] || errorExit "Empty cusomize target directory"
@@ -853,32 +856,52 @@ customize() {
 		errorExit "Customize target directory already exists"
 	[ -n "$CUSTOMIZE_RUN_SCRIPT" ] || errorExit "Empty customize script"
 
-	[ ! -d "$(dirname "$CUSTOMIZE_TARGET_DIR")" ] && \
-		mkdir -p "$(dirname "$CUSTOMIZE_TARGET_DIR")"
+	if [ "${CUSTOMIZE_TARGET_DIR:0:1}" != "/" ]; then
+		[ -z "$USER_HOME" ] && setUserHomeDir "$USER_HOME"
+		TARGET_DIR="$USER_HOME/$CUSTOMIZE_TARGET_DIR"
+		CLONE_AS_USER="yes"
+	else
+		TARGET_DIR="$CUSTOMIZE_TARGET_DIR"
+	fi
 
-	git clone "$CUSTOMIZE_GIT_URL" "$CUSTOMIZE_TARGET_DIR" || \
-		errorExit "Clone customize git repo failed"
+	[ ! -d "$(dirname "$TARGET_DIR")" ] && \
+		mkdir -p "$(dirname "$TARGET_DIR")"
 
-	pushd "$CUSTOMIZE_TARGET_DIR" || \
-		errorExit "Change directory to '%s' failed" "$CUSTOMIZE_TARGET_DIR"
+	if [ "$CLONE_AS_USER" == "yes" ]; then
+		execAsUser "$USER_NAME" git clone "$CUSTOMIZE_GIT_URL" \
+			"$TARGET_DIR" || \
+			errorExit "Clone customize git repo failed"
+	else
+		git clone "$CUSTOMIZE_GIT_URL" "$TARGET_DIR" || \
+			errorExit "Clone customize git repo failed"
+	fi
+
+	pushd "$TARGET_DIR" || \
+		errorExit "Change directory to '%s' failed" "$TARGET_DIR"
+
 	# shellcheck disable=SC1090 # source file will be set from configuration file
 	source "$CUSTOMIZE_RUN_SCRIPT" || errorExit "Run customizing script failed"
-		popd || errorExit "Change back directory failed"
-
-	rm -rf "$CUSTOMIZE_TARGET_DIR"
+	
+	popd || errorExit "Change back directory failed"
 }
 
 dotbot() {
 	[ "$DOTBOT" == "yes" ] || return
-	[ -z "$DOTBOT_GIT_URL" ] && errorExit "Empty dotbot git URL"
-	[ -z "$DOTBOT_INSTALL_CMD" ] && errorExit "Empty dotbot installation command"
 	[ -z "$USER_HOME" ] && setUserHomeDir "$USER_HOME"
 
 	installPackages python
 
-	execAsUser "$USER_NAME" git clone "$DOTBOT_GIT_URL" \
-		"$USER_HOME/$DOTBOT_TARGET_DIR" || \
-		errorExit "Clone '%s' failed" "$DOTBOT_GIT_URL"
+	if [ "$DOTBOT_USE_AS_CUSTOMIZE_GIT" == "yes" ]; then
+		DOTBOT_TARGET_DIR="$CUSTOMIZE_TARGET_DIR"
+	else
+		[ -z "$DOTBOT_GIT_URL" ] && errorExit "Empty dotbot git URL"
+		[ -z "$DOTBOT_INSTALL_CMD" ] && \
+			errorExit "Empty dotbot installation command"
+
+		execAsUser "$USER_NAME" git clone "$DOTBOT_GIT_URL" \
+			"$USER_HOME/$DOTBOT_TARGET_DIR" || \
+			errorExit "Clone '%s' failed" "$DOTBOT_GIT_URL"
+	fi
 
 	pushd "$USER_HOME/$DOTBOT_TARGET_DIR" || \
 		errorExit "Change directory to '%s' failed" "$USER_HOME/$DOTBOT_TARGET_DIR"
