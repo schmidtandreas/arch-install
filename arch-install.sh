@@ -899,9 +899,8 @@ dotbot() {
 		DOTBOT_TARGET_DIR="$CUSTOMIZE_TARGET_DIR"
 	else
 		[ -z "$DOTBOT_GIT_URL" ] && errorExit "Empty dotbot git URL"
-		[ -z "$DOTBOT_INSTALL_CMD" ] && \
-			errorExit "Empty dotbot installation command"
-
+		[ -z "$DOTBOT_TARGET_DIR" ] && errorExit "Empty dotbot target dir"
+		
 		DOTBOT_TARGET_DIR="$USER_HOME/$DOTBOT_TARGET_DIR"
 
 		execAsUser "$USER_NAME" git clone "$DOTBOT_GIT_URL" \
@@ -912,9 +911,20 @@ dotbot() {
 	pushd "$DOTBOT_TARGET_DIR" || \
 		errorExit "Change directory to '%s' failed" "$DOTBOT_TARGET_DIR"
 
-	# shellcheck disable=SC2086 # eval not working and double quots either
-	execAsUser "$USER_NAME" $DOTBOT_INSTALL_CMD || \
-		errorExit "Dotbot installation script failed"
+	if [ -z "$DOTBOT_INSTALL_CMD" ] && [ -z "$DOTBOT_INSTALL_ROOT_CMD" ]; then
+		errorExit "Empty dotbot installation commands"
+	fi
+
+	if [ -n "$DOTBOT_INSTALL_CMD" ]; then
+		# shellcheck disable=SC2086 # eval not working and double quots either
+		execAsUser "$USER_NAME" $DOTBOT_INSTALL_CMD || \
+			errorExit "$DOTBOT_INSTALL_CMD installation script failed"
+	fi
+
+	if [ -n "$DOTBOT_INSTALL_ROOT_CMD" ]; then
+		$DOTBOT_INSTALL_ROOT_CMD || \
+			errorExit "$DOTBOT_INSTALL_ROOT_CMD installation script failed"
+	fi
 
 	popd || errorExit "Change back directory failed"
 }
