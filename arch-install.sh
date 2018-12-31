@@ -864,6 +864,10 @@ customize() {
 		TARGET_DIR="$CUSTOMIZE_TARGET_DIR"
 	fi
 
+	# Assign finalized path. This is used in the dotbot function when the config
+	# switch DOTBOT_USE_CUSTOMIZE_GIT is set.
+	CUSTOMIZE_TARGET_DIR="$TARGET_DIR"
+
 	[ ! -d "$(dirname "$TARGET_DIR")" ] && \
 		mkdir -p "$(dirname "$TARGET_DIR")"
 
@@ -898,13 +902,15 @@ dotbot() {
 		[ -z "$DOTBOT_INSTALL_CMD" ] && \
 			errorExit "Empty dotbot installation command"
 
+		DOTBOT_TARGET_DIR="$USER_HOME/$DOTBOT_TARGET_DIR"
+
 		execAsUser "$USER_NAME" git clone "$DOTBOT_GIT_URL" \
-			"$USER_HOME/$DOTBOT_TARGET_DIR" || \
+			"$DOTBOT_TARGET_DIR" || \
 			errorExit "Clone '%s' failed" "$DOTBOT_GIT_URL"
 	fi
 
-	pushd "$USER_HOME/$DOTBOT_TARGET_DIR" || \
-		errorExit "Change directory to '%s' failed" "$USER_HOME/$DOTBOT_TARGET_DIR"
+	pushd "$DOTBOT_TARGET_DIR" || \
+		errorExit "Change directory to '%s' failed" "$DOTBOT_TARGET_DIR"
 
 	# shellcheck disable=SC2086 # eval not working and double quots either
 	execAsUser "$USER_NAME" $DOTBOT_INSTALL_CMD || \
