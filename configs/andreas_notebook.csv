@@ -40,7 +40,7 @@ C,CUSTOMIZE_GIT_URL,https://gitlab.com/schmidtandreas/dotfiles.git
 C,CUSTOMIZE_TARGET_DIR,.dotfiles
 C,CUSTOMIZE_RUN_SCRIPT,customize_arch_linux.sh
 C,DOTBOT,yes
-C,DOTBOT_USE_AS_CUSTOMIZE_GIT,yes
+C,DOTBOT_USE_CUSTOMIZE_GIT,yes
 C,DOTBOT_INSTALL_CMD,./install -v -c install-notebook.yaml
 P,alsa-utils,
 P,arandr,

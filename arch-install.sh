@@ -891,7 +891,7 @@ dotbot() {
 
 	installPackages python
 
-	if [ "$DOTBOT_USE_AS_CUSTOMIZE_GIT" == "yes" ]; then
+	if [ "$DOTBOT_USE_CUSTOMIZE_GIT" == "yes" ]; then
 		DOTBOT_TARGET_DIR="$CUSTOMIZE_TARGET_DIR"
 	else
 		[ -z "$DOTBOT_GIT_URL" ] && errorExit "Empty dotbot git URL"
