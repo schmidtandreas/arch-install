@@ -847,7 +847,6 @@ __END__
 
 customize() {
 	local CLONE_AS_USER=""
-	local TARGET_DIR=""
 
 	[ "$CUSTOMIZE" == "yes" ] || return
 	[ -n "$CUSTOMIZE_GIT_URL" ] || errorExit "Empty customize git URL"
@@ -858,30 +857,24 @@ customize() {
 
 	if [ "${CUSTOMIZE_TARGET_DIR:0:1}" != "/" ]; then
 		[ -z "$USER_HOME" ] && setUserHomeDir "$USER_HOME"
-		TARGET_DIR="$USER_HOME/$CUSTOMIZE_TARGET_DIR"
+		CUSTOMIZE_TARGET_DIR="$USER_HOME/$CUSTOMIZE_TARGET_DIR"
 		CLONE_AS_USER="yes"
-	else
-		TARGET_DIR="$CUSTOMIZE_TARGET_DIR"
 	fi
 
-	# Assign finalized path. This is used in the dotbot function when the config
-	# switch DOTBOT_USE_CUSTOMIZE_GIT is set.
-	CUSTOMIZE_TARGET_DIR="$TARGET_DIR"
-
-	[ ! -d "$(dirname "$TARGET_DIR")" ] && \
-		mkdir -p "$(dirname "$TARGET_DIR")"
+	[ ! -d "$(dirname "$CUSTOMIZE_TARGET_DIR")" ] && \
+		mkdir -p "$(dirname "$CUSTOMIZE_TARGET_DIR")"
 
 	if [ "$CLONE_AS_USER" == "yes" ]; then
 		execAsUser "$USER_NAME" git clone "$CUSTOMIZE_GIT_URL" \
-			"$TARGET_DIR" || \
+			"$CUSTOMIZE_TARGET_DIR" || \
 			errorExit "Clone customize git repo failed"
 	else
-		git clone "$CUSTOMIZE_GIT_URL" "$TARGET_DIR" || \
+		git clone "$CUSTOMIZE_GIT_URL" "$CUSTOMIZE_TARGET_DIR" || \
 			errorExit "Clone customize git repo failed"
 	fi
 
-	pushd "$TARGET_DIR" || \
-		errorExit "Change directory to '%s' failed" "$TARGET_DIR"
+	pushd "$CUSTOMIZE_TARGET_DIR" || \
+		errorExit "Change directory to '%s' failed" "$CUSTOMIZE_TARGET_DIR"
 
 	# shellcheck disable=SC1090 # source file will be set from configuration file
 	source "$CUSTOMIZE_RUN_SCRIPT" || errorExit "Run customizing script failed"
