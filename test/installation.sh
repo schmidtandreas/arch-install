@@ -74,7 +74,7 @@ if ! qemu-system-x86_64 -enable-kvm \
 		   -drive file=/tmp/arch-linux.img,index=0,media=disk,format=raw \
 		   -cdrom /tmp/archlinux-*.iso \
 		   -boot d \
-		   -m 512 \
+		   -m 2048 \
 		   -net user,hostfwd=tcp::10022-:22 \
 		   -net nic \
 		   -daemonize \
