@@ -251,6 +251,25 @@ getAllPartitions() {
 		[ $attempts -le 0 ] && break
 	done
 
+	# it seems lsblk output partions earlier as device file are appeared
+	# this loop wait for device files of found block devices
+	attempts=3
+	local device_files_ready=false
+	until [ "$device_files_ready" = true ]; do
+		device_files_ready=true
+		for device_file in $BLK; do
+			[ -b "/dev/$device_file" ] || device_files_ready=false
+		done
+
+		attempts=$((attempts - 1))
+		if [ $attempts -le 0 ]; then
+			BLK=""
+			break
+		fi
+
+		[ "$device_files_ready" = true ] || sleep 1
+	done
+
 	echo "$BLK"
 }
 
