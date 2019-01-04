@@ -8,7 +8,7 @@ SCRIPT_NAME="${SCRIPT_FILE%.*}"
 AUR_PACKAGE_QUERY_URL="https://aur.archlinux.org/package-query.git"
 AUR_YAOURT_URL="https://aur.archlinux.org/yaourt.git"
 
-TESTRUN=false
+DEBUG=false
 MOUNTED_DEVICES=false
 
 # ==============================================================================
@@ -78,7 +78,7 @@ printWarning() {
 }
 
 warnOnTestOrErrorExit() {
-	if isTestRun; then
+	if isDebugMode; then
 		printWarning "$*"
 	else
 		errorExit "$*"
@@ -293,17 +293,19 @@ detectRootUuid() {
 }
 
 setPassword() {
-	local PW_USER="root"
+	local PW_USER="$1"
+	local PW_STANDARD="$2"
 	local RET=1
 
-	[ -n "$1" ] && PW_USER="$1"
+	[ -z "$1" ] && errorExit "User parameter empty. Could not "\
+					"set password for empty user"
 
-	printLine "Setting password for user '$PW_USER'"
-
-	if isTestRun; then
+	if [ "$PW_STANDARD" = "standard" ]; then
+		printLine "Setting standard password for user '$PW_USER'"
 		echo -e "password\npassword" | passwd "$PW_USER"
 		RET=$?
 	else
+		printLine "Setting password for user '$PW_USER'"
 		local TRIES=0
 		while [ $TRIES -lt 3 ]; do
 			passwd "$PW_USER"
@@ -364,8 +366,8 @@ optimizeMkinitcpioHookBefore() {
 	rm /tmp/mkinitcpio.conf
 }
 
-isTestRun() {
-	[ "$TESTRUN" = true ]
+isDebugMode() {
+	[ "$DEBUG" = true ]
 }
 
 isMountedDevices() {
@@ -497,7 +499,7 @@ loadCvsDataConfig() {
 		esac
 	done < "$CONF_FILE"
 
-	isTestRun && INSTALL_DEVICE="/dev/sda"
+	isDebugMode && INSTALL_DEVICE="/dev/sda"
 }
 
 checkInstallDevice() {
@@ -506,7 +508,7 @@ checkInstallDevice() {
 }
 
 confirmInstall() {
-	isTestRun && return
+	isDebugMode && return
 	lsblk
 	printLine "Installing to '$INSTALL_DEVICE' - ALL DATA ON IT WILL BE LOST!"
 	printLine "Enter 'YES' (in capitals) to confirm and start the installation."
@@ -664,7 +666,7 @@ archChroot() {
 	local IN_CHROOT_CONF_FILE="$START_PATH/$CONF_FILE"
 	local IN_CHROOT_PARAM="$IN_CHROOT_SCRIPT_PATH/$SCRIPT_FILE -c $IN_CHROOT_CONF_FILE"
 
-	isTestRun && IN_CHROOT_PARAM+=" -d"
+	isDebugMode && IN_CHROOT_PARAM+=" -d"
 
 	arch-chroot /mnt /usr/bin/bash -c "$IN_CHROOT_PARAM $1" || \
 		errorExit "Installation failed and aborted"
@@ -701,7 +703,7 @@ loadCvsDataAll() {
 		esac
 	done < "$CONF_FILE"
 
-	isTestRun && INSTALL_DEVICE="/dev/sda"
+	isDebugMode && INSTALL_DEVICE="/dev/sda"
 }
 
 setHostname() {
@@ -759,7 +761,7 @@ rankingMirrorList() {
 }
 
 setRootUserEnvironment() {
-	setPassword root
+	setPassword root standard
 }
 
 setOptimizeIoSchedulerKernel() {
@@ -793,10 +795,11 @@ installSudo() {
 	chmod u+w /etc/sudoers
 	sed -i -e 's|^#\s*\(%wheel ALL=(ALL) ALL\)$|\1|' /etc/sudoers
 
-	# set no passwd only in TESTRUN mode. Otherwise we cant put our skript
-	# to ci tools.
-
-	isTestRun && sed -i -e 's|^#\s*\(%wheel ALL=(ALL) NOPASSWD: ALL\)$|\1|' /etc/sudoers
+	# set no passwd to run the installation without asking
+	# the user all the time about the password. If no debug
+	# mode is set, revert this config in the last step of the
+	# installation.
+	sed -i -e 's|^#\s*\(%wheel ALL=(ALL) NOPASSWD: ALL\)$|\1|' /etc/sudoers
 
 	cat >>/etc/sudoers <<__END__
 
@@ -827,7 +830,7 @@ addUser() {
 		-c "$USER_REALNAME" -m "$USER_NAME"
 
 	if [ "$USER_SET_PASSWORD" == "yes" ]; then
-		setPassword "$USER_NAME"
+		setPassword "$USER_NAME" standard
 	else
 		passwd -l "$USER_NAME"
 	fi
@@ -973,6 +976,16 @@ cloneGitProjects() {
 	popd || errorExit "Change back directory failed"
 }
 
+setPasswords() {
+	# if not installed in debug mode, revert NOPASSWD and ask the user for
+	# root and user password. Otherwise leave the debug standard password.
+	if ! isDebugMode; then
+		sed -i -e 's|^\s*\(%wheel ALL=(ALL) NOPASSWD: ALL\)$|# &|' /etc/sudoers
+		setPassword root
+		setPassword "$USER_NAME"
+	fi
+}
+
 # ==============================================================================
 #    G E T O P T S
 # ==============================================================================
@@ -987,9 +1000,7 @@ while getopts :hc:d opt; do
 		CONF_FILE="$OPTARG"
 		;;
 	d)
-		TESTRUN=true
-		# in case of a testrun we also want to get some
-		# debug information
+		DEBUG=true
 		set -x
 		;;
 	:)
@@ -1097,6 +1108,8 @@ case "$INSTALL_TARGET" in
 		addUserGroups "${USER_GROUPS[@]}"
 
 		cloneGitProjects "${GIT_PROJECTS[@]}"
+
+		setPasswords
 
 		exit 0
 		;;
