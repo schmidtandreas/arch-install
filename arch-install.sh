@@ -293,33 +293,25 @@ detectRootUuid() {
 }
 
 setPassword() {
-	local PW_USER="$1"
-	local PW_STANDARD="$2"
-	local RET=1
+	local _USER="$1"
+	local PW_DEFAULT="$2"
+	isUserExists "$_USER"
 
-	[ -z "$1" ] && errorExit "User parameter empty. Could not "\
-					"set password for empty user"
-
-	if [ "$PW_STANDARD" = "standard" ]; then
-		printLine "Setting standard password for user '$PW_USER'"
-		echo -e "password\npassword" | passwd "$PW_USER"
-		RET=$?
+	if [ "$PW_DEFAULT" = "default" ]; then
+		printLine "Setting default password for user '%s'" "$_USER"
+		echo -e "password\npassword" | passwd "$_USER" || \
+			errorExit "Set default password for '%s' user failed" "$_USER"
 	else
-		printLine "Setting password for user '$PW_USER'"
-		local TRIES=0
-		while [ $TRIES -lt 3 ]; do
-			passwd "$PW_USER"
-			RET=$?
-			if [ $RET -eq 0 ]; then
-				TRIES=3
-			else
-				printLine "Set password failed, try again"
-			fi
-			TRIES=$((TRIES + 1))
+		local attempts=3
+
+		printLine "Setting password for user '%s'" "$_USER"
+		while ! passwd "$_USER"; do
+			[ $attempts -le 0 ] && \
+				errorExit "Set password for '%s' user failed" "$_USER"
+			printLine "Set password failed, try again"
+			attempts=$((attempts - 1))
 		done
 	fi
-
-	return $RET
 }
 
 setUserHomeDir() {
@@ -761,7 +753,7 @@ rankingMirrorList() {
 }
 
 setRootUserEnvironment() {
-	setPassword root standard
+	setPassword root default
 }
 
 setOptimizeIoSchedulerKernel() {
@@ -830,7 +822,7 @@ addUser() {
 		-c "$USER_REALNAME" -m "$USER_NAME"
 
 	if [ "$USER_SET_PASSWORD" == "yes" ]; then
-		setPassword "$USER_NAME" standard
+		setPassword "$USER_NAME" default
 	else
 		passwd -l "$USER_NAME"
 	fi
@@ -978,7 +970,7 @@ cloneGitProjects() {
 
 setPasswords() {
 	# if not installed in debug mode, revert NOPASSWD and ask the user for
-	# root and user password. Otherwise leave the debug standard password.
+	# root and user password. Otherwise leave the debug default password.
 	if ! isDebugMode; then
 		sed -i -e 's|^\s*\(%wheel ALL=(ALL) NOPASSWD: ALL\)$|# &|' /etc/sudoers
 		setPassword root
