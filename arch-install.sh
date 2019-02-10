@@ -723,6 +723,13 @@ setLocaleLang() {
 	echo "LANG=$LOCALE_LANG" > /etc/locale.conf
 }
 
+setLocaleConf() {
+	IFS=';' read -r -a LOCALE_CONF_ARRAY <<< "$LOCALE_CONF"
+	for L in "${LOCALE_CONF_ARRAY[@]}"; do
+		echo "$L" > /etc/locale.conf
+	done
+}
+
 setHwclock() {
 	printLine "Set RTC time to \"%s\"" "$(date)"
 	hwclock --systohc --utc
@@ -1061,6 +1068,7 @@ case "$INSTALL_TARGET" in
 		enableLocales
 		generateLocales
 		setLocaleLang
+		setLocaleConf
 
 		setHwclock
 
