@@ -481,6 +481,14 @@ setPacmanMirrorList() {
 		errorExit "Enable pacman server failed"
 
 	syncPacmanDb
+
+	installPackages pacman-contrib
+	
+	mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.dist
+	rankmirrors -n 5 /etc/pacman.d/mirrorlist.dist | \
+		tee /etc/pacman.d/mirrorlist
+
+	syncPacmanDb
 }
 
 loadCvsDataConfig() {
