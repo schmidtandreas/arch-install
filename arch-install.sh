@@ -762,6 +762,8 @@ createInitCpio() {
 }
 
 rankingMirrorList() {
+	installPackages pacman-contrib
+
 	mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.dist
 	rankmirrors -n "$RANKMIRRORS_TOP" /etc/pacman.d/mirrorlist.dist | \
 		tee /etc/pacman.d/mirrorlist
