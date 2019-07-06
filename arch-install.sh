@@ -188,7 +188,7 @@ enableUserServices() {
 	shift
 
 	for SERVICE in "$@"; do
-		execAsUser "$_USER" systemctl --user enable "$SERVICE" || \
+		execAsUser "$_USER" SYSTEMD_OFFLINE="true" systemctl --user enable "$SERVICE" || \
 			errorExit "Enable systemd user service '%s' failed" "$SERVICE"
 	done
 }
