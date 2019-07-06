@@ -71,15 +71,15 @@ qemu-img create /tmp/arch-linux.img 15G
 
 # start iso image
 if ! qemu-system-x86_64 -enable-kvm \
-		   -drive file=/tmp/arch-linux.img,index=0,media=disk,format=raw \
-		   -cdrom /tmp/archlinux-*.iso \
-		   -boot d \
-		   -m 2048 \
-		   -net user,hostfwd=tcp::10022-:22 \
-		   -net nic \
-		   -daemonize \
-		   -display none \
-		   -bios /usr/share/ovmf/bios.bin; then
+			-drive file=/tmp/arch-linux.img,index=0,media=disk,format=raw \
+			-cdrom /tmp/archlinux-*.iso \
+			-boot d \
+			-m 2048 \
+			-netdev user,hostfwd=tcp::10022-:22,id=nic1 \
+			-device e1000,netdev=nic1 \
+			-daemonize \
+			-display none \
+			-bios /usr/share/ovmf/bios.bin; then
 	echo "ERROR: could not start vm"
 	exit 1
 fi
