@@ -1,5 +1,7 @@
 #!/bin/bash
 
+CFG_FILE_NAME="$1"
+
 ISO_NAMESPACE="alegsan"
 ISO_PROJECT="ssh-archiso"
 ISO_BRANCH="master"
@@ -11,6 +13,8 @@ MD5_FILE="https://gitlab.com/$ISO_NAMESPACE/$ISO_PROJECT/-/jobs/artifacts/$ISO_B
 ARCH_BRANCH="master"
 ARCH_INSTALL_PROJ="arch-install-$ARCH_BRANCH"
 ARCH_INSTALL_URL="https://gitlab.com/schmidtandreas/arch-install/-/archive/$ARCH_BRANCH/$ARCH_INSTALL_PROJ.tar.gz"
+
+CFG_FILE_PATH="$ARCH_INSTALL_PROJ/configs/$CFG_FILE_NAME"
 
 SSH_COMMAND="ssh root@localhost -o StrictHostKeyChecking=no -p 10022"
 
@@ -55,7 +59,7 @@ wait_for_vm() {
 }
 
 # main
-[ ! -f "configs/$1" ] && exit 1
+[ ! -f "configs/$CFG_FILE_NAME" ] && exit 1
 
 if ! get_archiso /tmp; then
 	echo "ERROR: could not get archiso image"
@@ -89,4 +93,4 @@ if ! wait_for_vm; then
 fi
 
 $SSH_COMMAND "curl -L $ARCH_INSTALL_URL | tar zxvf -"
-$SSH_COMMAND "$ARCH_INSTALL_PROJ/arch-install.sh -d -c $ARCH_INSTALL_PROJ/configs/$1"
+$SSH_COMMAND "$ARCH_INSTALL_PROJ/arch-install.sh -d -c $CFG_FILE_PATH"
