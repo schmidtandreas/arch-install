@@ -9,6 +9,9 @@ before_script:
 
 install_andreas:
   stage: install
+  only:
+    - master
+    - /^andreas_.*/
   tags:
   - docker
   - andreas
@@ -18,6 +21,7 @@ install_alegsan:
   stage: install
   only:
     - master
+    - /^alegsan_.*$/
   tags:
   - docker
   - alegsan
