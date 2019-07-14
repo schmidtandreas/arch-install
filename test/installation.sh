@@ -10,7 +10,7 @@ MD5_FILE="https://gitlab.com/$ISO_NAMESPACE/$ISO_PROJECT/-/jobs/artifacts/$ISO_B
 
 ARCH_BRANCH="master"
 ARCH_INSTALL_PROJ="arch-install-$ARCH_BRANCH"
-ARCH_INSTALL_URL="curl -L https://gitlab.com/schmidtandreas/arch-install/-/archive/$ARCH_BRANCH/$ARCH_INSTALL_PROJ.tar.gz"
+ARCH_INSTALL_URL="https://gitlab.com/schmidtandreas/arch-install/-/archive/$ARCH_BRANCH/$ARCH_INSTALL_PROJ.tar.gz"
 
 SSH_COMMAND="ssh root@localhost -o StrictHostKeyChecking=no -p 10022"
 
@@ -41,7 +41,6 @@ wait_for_vm() {
 	echo "try to connect to vm..."
 
 	while [ $max_timeout -ne 0 ]; do
-
 		if $SSH_COMMAND "echo \"hello archlinux\"" 2> /dev/null; then
 			ret=$?
 			break
