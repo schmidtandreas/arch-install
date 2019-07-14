@@ -1,6 +1,9 @@
 #!/bin/bash
 
 CFG_FILE_NAME="$1"
+shift
+ARCH_BRANCH="$1"
+shift
 
 ISO_NAMESPACE="alegsan"
 ISO_PROJECT="ssh-archiso"
@@ -10,7 +13,7 @@ ISO_URL="https://gitlab.com/$ISO_NAMESPACE/$ISO_PROJECT/-/jobs/artifacts/$ISO_BR
 
 MD5_FILE="https://gitlab.com/$ISO_NAMESPACE/$ISO_PROJECT/-/jobs/artifacts/$ISO_BRANCH/file/md5.txt?job=build-archiso"
 
-ARCH_BRANCH="master"
+[ -z "$ARCH_BRANCH" ] && ARCH_BRANCH="master"
 ARCH_INSTALL_PROJ="arch-install-$ARCH_BRANCH"
 ARCH_INSTALL_URL="https://gitlab.com/schmidtandreas/arch-install/-/archive/$ARCH_BRANCH/$ARCH_INSTALL_PROJ.tar.gz"
 
