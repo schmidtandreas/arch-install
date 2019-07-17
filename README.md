@@ -1,25 +1,19 @@
-andreas_notebook.csv [![pipeline status](https://gitlab.com/schmidtandreas/arch-install/badges/master/pipeline.svg)](https://gitlab.com/schmidtandreas/arch-install/commits/master)
-
-# arch-install
-
-(Forked from/CREDITS to https://github.com/wrzlbrmft/arch-install.)
+# arch-install (Arch Linux Installation Script)
+[![pipeline status](https://gitlab.com/schmidtandreas/arch-install/badges/master/pipeline.svg)](https://gitlab.com/schmidtandreas/arch-install/commits/master)
 
 A highly configurable script installing
 [Arch Linux](https://www.archlinux.org/).
+
+Originally forked from/CREDITS to https://github.com/wrzlbrmft/arch-install.
 
 ## Feature Highlights
 
 * Fully automated installation of a ready-to-use [Arch Linux](https://www.archlinux.org/) system
 * Installation to any device, including USB sticks or into a [VirtualBox](https://www.virtualbox.org/) VM
-* Auto-detecting SSDs to configure [TRIM](http://en.wikipedia.org/wiki/Trim_(computing))
 * Supports both BIOS (legacy) and [EFI/UEFI](http://en.wikipedia.org/wiki/Unified_Extensible_Firmware_Interface) boot methods
   * for BIOS: `grub` boot loader
-  * for [EFI/UEFI](http://en.wikipedia.org/wiki/Unified_Extensible_Firmware_Interface): choose between `grub` or the `gummiboot` boot loader
+  * for [EFI/UEFI](http://en.wikipedia.org/wiki/Unified_Extensible_Firmware_Interface): choose between `grub` or the `system-boot` boot loader
 * `yaourt` installation to install [AUR packages](https://aur.archlinux.org/) right away
-* Xorg installation
-* Optionally install Ubuntu's font rendering (much smoother!)
-* [Xfce](http://www.xfce.org/) installation, including the Numix theme and icons
-* Graphical user login using LightDM
 * Installation of individually configurable software package sets, already
 including
   * [Chrome](https://www.google.de/chrome/browser/desktop/), [Firefox](https://www.mozilla.org/firefox/), [Thunderbird](https://www.mozilla.org/thunderbird/), [Skype](http://www.skype.com/), [Pidgin](https://www.pidgin.im/), [TeamViewer](https://www.teamviewer.com/)
@@ -31,9 +25,14 @@ including
   * [Ant](http://ant.apache.org/), [Maven](https://maven.apache.org/), [GCC](https://gcc.gnu.org/), [Code::Blocks](http://www.codeblocks.org/), [GCC](https://gcc.gnu.org/) for [AVR](http://www.atmel.com/products/microcontrollers/avr/), [Arduino](https://www.arduino.cc/en/Main/Software), [Fritzing](http://fritzing.org/)
   * [Apache](http://httpd.apache.org/), [MariaDB](https://mariadb.org/), [PHP](http://php.net/), [Composer](https://getcomposer.org/), [Node.js](https://nodejs.org/), [npm](https://www.npmjs.com/), [Google Protocol Buffers](https://developers.google.com/protocol-buffers/)
   * ...
+* Enablingof individually configurable systemd services, also systemd user services
+* Additional executing of individually customize script
+* Installation of [Dotbot](https://github.com/anishathalye/dotbot) environment include of dotfile installation
+* Cloning of individually git project to user workspace
 * Optimization settings like `noatime`, swappiness and a better IO scheduler for SSDs
+* Every commits are verfied by gitlab CI and once a monthe with the latest [Arch Linux](https://www.archlinux.org/) image
 
-You should look into the configuration file `arch-install.conf` -- almost
+You should look into the configuration files under `configs` folder -- almost
 everything is configurable...
 
 ## Quick Start
@@ -44,8 +43,8 @@ Boot the [Arch Linux ISO image](https://www.archlinux.org/download/) and type
 in:
 
 ```
-curl -L https://github.com/wrzlbrmft/arch-install/archive/master.tar.gz | tar zxvf -
-arch-install-master/arch-install.sh
+curl -L  https://gitlab.com/schmidtandreas/arch-install/-/archive/master/arch-install-master.tar.gz | tar zxvf -
+arch-install-master/arch-install.sh -c <desired configuration file>
 ```
 
 **CAUTION:** The installation will delete *all* existing data on the
@@ -82,14 +81,19 @@ wifi-menu
 Next, download and unpack the `arch-install` repository:
 
 ```
-curl -L https://github.com/wrzlbrmft/arch-install/archive/master.tar.gz | tar zxvf -
-arch-install-master/arch-install.sh
+curl -L  https://gitlab.com/schmidtandreas/arch-install/-/archive/master/arch-install-master.tar.gz | tar zxvf -
 ```
 
-You may want to change the default configuration:
+Execute the installation script:
 
 ```
-nano -w arch-install-master/arch-install.conf
+arch-install-master/arch-install.sh -c <desired configuration file>
+```
+
+You may want to create own configuration:
+
+```
+vim arch-install-master/configs/<configuration name>
 ```
 
 **NOTE:** If you are installing into a [VirtualBox](https://www.virtualbox.org/)
@@ -102,19 +106,17 @@ see also: *Configuration/Most Important Settings*
 Finally, start the installation process:
 
 ```
-arch-install-master/arch-install.sh
+arch-install-master/arch-install.sh -c arch-install-master/configs/<configuration name>
 ```
 
 **CAUTION:** The installation will delete *all* existing data on the
 installation device including all other partitions and operating systems on it.
 
-**NOTE:** For both the `root` and main user, and also if you enabled the
-LVM-on-LUKS encryption, you will have to type in some passwords during the
-installation process.
+**NOTE:** For both the `root` and main user you will have to type in some passwords
+during the installation process.
 
 Depending on your computer and internet connection speed, installing the
-defaults takes about 60 minutes (downloading 1.8 GB) and uses 11.1 GB of the
-installation device.
+defaults takes less then 60 minutes.
 
 The installation is done, once you see
 
