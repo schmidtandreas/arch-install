@@ -37,8 +37,9 @@ C,GIT_PROJECTS_DIR,workspace/git
 C,DOTBOT,yes
 C,DOTBOT_GIT_URL,https://gitlab.com/alegsan/dotfiles.git
 C,DOTBOT_TARGET_DIR,workspace/git/dotfiles
-C,DOTBOT_INSTALL_CMD,./install -v -c install.conf.yaml
-C,DOTBOT_INSTALL_ROOT_CMD,./install -v -c install-root.conf.yaml
+C,DOTBOT_INSTALL_CMD,./install -c install.conf.yaml
+C,DOTBOT_INSTALL_ROOT_CMD,./install -c install-root.conf.yaml
+C,DOTBOT_VERBOSE,-v
 P,acpi,
 P,acpid,
 P,alsa-utils,

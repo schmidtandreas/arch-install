@@ -940,12 +940,20 @@ dotbot() {
 	fi
 
 	if [ -n "$DOTBOT_INSTALL_CMD" ]; then
+		if isDebugMode; then
+			DOTBOT_INSTALL_CMD="$DOTBOT_INSTALL_CMD $DOTBOT_VERBOSE"
+		fi
+
 		# shellcheck disable=SC2086 # eval not working and double quots either
 		execAsUser "$USER_NAME" $DOTBOT_INSTALL_CMD || \
 			errorExit "$DOTBOT_INSTALL_CMD installation script failed"
 	fi
 
 	if [ -n "$DOTBOT_INSTALL_ROOT_CMD" ]; then
+		if isDebugMode; then
+			DOTBOT_INSTALL_ROOT_CMD="$DOTBOT_INSTALL_ROOT_CMD $DOTBOT_VERBOSE"
+		fi
+
 		$DOTBOT_INSTALL_ROOT_CMD || \
 			errorExit "$DOTBOT_INSTALL_ROOT_CMD installation script failed"
 	fi
