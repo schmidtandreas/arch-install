@@ -61,6 +61,27 @@ wait_for_vm() {
 	return $ret
 }
 
+wait_for_vm_down() {
+	local timeout=60
+	local ret=255
+
+	echo "waiting til vm is down..."
+
+	while [ $timeout -gt 0 ]; do
+		if ! pidof qemu-system-x86_64; then
+			ret=0
+			break
+		fi
+		timeout=$((timeout - 1))
+		sleep 1
+	done
+
+	# TODO maybe it's better to remove just the key?
+	rm ~/.ssh/known_hosts
+
+	return $ret
+}
+
 # main
 [ ! -f "configs/$CFG_FILE_NAME" ] && exit 1
 
@@ -77,15 +98,15 @@ qemu-img create /tmp/arch-linux.img 15G
 
 # start iso image
 if ! qemu-system-x86_64 -enable-kvm \
-			-drive file=/tmp/arch-linux.img,index=0,media=disk,format=raw \
-			-cdrom /tmp/archlinux-*.iso \
-			-boot d \
-			-m 2048 \
-			-netdev user,hostfwd=tcp::10022-:22,id=nic1 \
-			-device e1000,netdev=nic1 \
-			-daemonize \
-			-display none \
-			-bios /usr/share/ovmf/bios.bin; then
+		   -drive file=/tmp/arch-linux.img,index=0,media=disk,format=raw \
+		   -cdrom /tmp/archlinux-*.iso \
+		   -boot d \
+		   -m 2048 \
+		   -netdev user,hostfwd=tcp::10022-:22,id=nic1 \
+		   -device e1000,netdev=nic1 \
+		   -daemonize \
+		   -display none \
+		   -bios /usr/share/ovmf/bios.bin; then
 	echo "ERROR: could not start vm"
 	exit 1
 fi
@@ -97,3 +118,9 @@ fi
 
 $SSH_COMMAND "curl -L $ARCH_INSTALL_URL | tar zxvf -"
 $SSH_COMMAND "$ARCH_INSTALL_PROJ/arch-install.sh -d -c $CFG_FILE_PATH"
+$SSH_COMMAND "shutdown -h now"
+
+if ! wait_for_vm_down; then
+	echo "Timeout for qemu shutdown is expired"
+	exit 1
+fi
