@@ -15,7 +15,9 @@ install_andreas:
   tags:
   - docker
   - andreas
-  script: bash -x test/installation.sh "andreas_notebook.csv" "$CI_COMMIT_REF_NAME"
+  script:
+  - bash -x test/installation.sh "andreas_notebook.csv" "$CI_COMMIT_REF_NAME"
+  - bash -x test/installation.sh "andreas_eit.csv" "$CI_COMMIT_REF_NAME"
 
 install_alegsan:
   stage: install
