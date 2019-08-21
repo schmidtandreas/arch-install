@@ -41,43 +41,41 @@ get_archiso() {
 }
 
 wait_for_vm() {
-	local timeout=10
-	local max_timeout=240
+	local step=10
+	local timeout=240
 	local ret=255
 
 	echo "try to connect to vm..."
 
-	while [ $max_timeout -ne 0 ]; do
+	while [ $timeout -ne 0 ]; do
 		if $SSH_COMMAND "echo \"hello archlinux\"" 2> /dev/null; then
 			ret=$?
 			break
 		fi
 
 		echo "trying again in $timeout seconds..."
-		max_timeout=$((max_timeout - timeout))
-		sleep $timeout
+		timeout=$((timeout - step))
+		sleep $step
 	done
 
 	return $ret
 }
 
 wait_for_vm_down() {
+	local step=10
 	local timeout=60
 	local ret=255
 
-	echo "waiting til vm is down..."
+	echo "waiting until vm is down..."
 
 	while [ $timeout -gt 0 ]; do
-		if ! pidof qemu-system-x86_64; then
+		if ! pidof qemu-system-x86_64 >/dev/null; then
 			ret=0
 			break
 		fi
-		timeout=$((timeout - 1))
-		sleep 1
+		timeout=$((timeout - step))
+		sleep $step
 	done
-
-	# TODO maybe it's better to remove just the key?
-	rm ~/.ssh/known_hosts
 
 	return $ret
 }
@@ -124,3 +122,6 @@ if ! wait_for_vm_down; then
 	echo "Timeout for qemu shutdown is expired"
 	exit 1
 fi
+
+# TODO maybe it's better to remove just the key?
+rm ~/.ssh/known_hosts
