@@ -13,7 +13,7 @@ Originally forked from/CREDITS to https://github.com/wrzlbrmft/arch-install.
 * Supports both BIOS (legacy) and [EFI/UEFI](http://en.wikipedia.org/wiki/Unified_Extensible_Firmware_Interface) boot methods
   * for BIOS: `grub` boot loader
   * for [EFI/UEFI](http://en.wikipedia.org/wiki/Unified_Extensible_Firmware_Interface): choose between `grub` or the `system-boot` boot loader
-* `yaourt` installation to install [AUR packages](https://aur.archlinux.org/) right away
+* `yay` installation to install [AUR packages](https://aur.archlinux.org/) right away
 * Installation of individually configurable software package sets, already
 including
   * [Chrome](https://www.google.de/chrome/browser/desktop/), [Firefox](https://www.mozilla.org/firefox/), [Thunderbird](https://www.mozilla.org/thunderbird/), [Skype](http://www.skype.com/), [Pidgin](https://www.pidgin.im/), [TeamViewer](https://www.teamviewer.com/)
@@ -173,7 +173,7 @@ Whether to add a main user. If set to `yes`, have a look at the
 `MAIN_USER_USERNAME` and `MAIN_USER_REALNAME` settings.
 
 **CAUTION:** The installation process highly depends on the creation of a main
-user (for basically everything being installed by `yaourt`). **Disable at your
+user (for basically everything being installed by `yay`). **Disable at your
 own risk!**
 
 #### MAIN_USER_USERNAME, MAIN_USER_REALNAME

@@ -6,7 +6,8 @@ SCRIPT_FILE="$(basename "${BASH_SOURCE[0]}")"
 SCRIPT_NAME="${SCRIPT_FILE%.*}"
 
 AUR_PACKAGE_QUERY_URL="https://aur.archlinux.org/package-query.git"
-AUR_YAOURT_URL="https://aur.archlinux.org/yaourt.git"
+AUR_HELPER="yay"
+AUR_HELPER_URL="https://aur.archlinux.org/$AUR_HELPER.git"
 
 DEBUG=false
 MOUNTED_DEVICES=false
@@ -115,26 +116,11 @@ installPackages() {
 	done
 }
 
-installYaourtPackages() {
-	local _USER="$1"
-	shift
-	isUserExists "$_USER"
-	local PACKAGES=()
-	IFS=" " read -ra PACKAGES <<< "$@"
-
-	for PACKAGE in "${PACKAGES[@]}"; do
-		if ! execAsUser "$_USER" yaourt -Qi "$PACKAGE" 1>/dev/null 2>&1; then
-			execAsUser "$_USER" yaourt -S --noconfirm --needed "$PACKAGE" || \
-				errorExit "Install yaourt package '%s' failed" "$PACKAGE"
-		fi
-	done
-}
-
-installYaourt() {
+installAurHelper() {
 	local _USER="$1"
 
 	[ -z "$AUR_PACKAGE_QUERY_URL" ] && errorExit "Empty package query URL"
-	[ -z "$AUR_YAOURT_URL" ] && errorExit "Empty yaourt URL"
+	[ -z "$AUR_HELPER_URL" ] && errorExit "Empty $AUR_HELPER URL"
 
 	isUserExists "$_USER"
 
@@ -153,25 +139,16 @@ installYaourt() {
 		errorExit "Install package-query failed"
 	cd ..
 
-	git clone "$AUR_YAOURT_URL" yaourt || errorExit "Clone yaourt failed"
-	[ ! -d ./yaourt ] && errorExit "Clone yaourt failed"
-	chown -R "$_USER":users ./yaourt || \
-		errorExit "Change owner of /tmp/yaourt failed"
-	cd yaourt || errorExit "Change directory to 'yaourt' failed"
+	git clone "$AUR_HELPER_URL" "$AUR_HELPER" || errorExit "Clone $AUR_HELPER failed"
+	[ ! -d ./"$AUR_HELPER" ] && errorExit "Clone $AUR_HELPER failed"
+	chown -R "$_USER":users ./"$AUR_HELPER" || \
+		errorExit "Change owner of /tmp/$AUR_HELPER failed"
+	cd "$AUR_HELPER" || errorExit "Change directory to '$AUR_HELPER' failed"
 	execAsUser "$_USER" makepkg -si --noconfirm --needed || \
-		errorExit "Install yaourt failed"
+		errorExit "Install $AUR_HELPER failed"
 	cd ..
-	
+
 	popd || errorExit "Change back directory failed"
-
-	if grep -q "\\[archlinuxfr\\]" </etc/pacman.conf; then
-		cat >>/etc/pacman.conf <<__END__
-
-[archlinuxfr]
-SigLevel = Never
-Server = http://repo.archlinux.fr/\$arch
-__END__
-	fi
 
 	syncPacmanDb
 }
@@ -850,12 +827,19 @@ addUser() {
 }
 
 installAurPackages () {
-	local PACKAGES=("$@")
+	local PACKAGES=()
+
+	installAurHelper "$USER_NAME"
+
+	IFS=" " read -ra PACKAGES <<< "$@"
 	[ ${#PACKAGES[@]} -gt 0 ] || return
 
-	installYaourt "$USER_NAME"
-
-	installYaourtPackages "$USER_NAME" "${PACKAGES[@]}"
+	for PACKAGE in "${PACKAGES[@]}"; do
+		if ! execAsUser "$USER_NAME" "$AUR_HELPER" -Qi "$PACKAGE" 1>/dev/null 2>&1; then
+			execAsUser "$USER_NAME" "$AUR_HELPER" -S --noconfirm --needed "$PACKAGE" || \
+				errorExit "Install $AUR_HELPER package '%s' failed" "$PACKAGE"
+		fi
+	done
 }
 
 setX11KeyMaps() {
