@@ -5,7 +5,6 @@ SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_FILE="$(basename "${BASH_SOURCE[0]}")"
 SCRIPT_NAME="${SCRIPT_FILE%.*}"
 
-AUR_PACKAGE_QUERY_URL="https://aur.archlinux.org/package-query.git"
 AUR_HELPER="yay"
 AUR_HELPER_URL="https://aur.archlinux.org/$AUR_HELPER.git"
 
@@ -127,17 +126,6 @@ installAurHelper() {
 	installPackages git
 
 	pushd /tmp || errorExit "Change directory to '/tmp' failed"
-
-	git clone "$AUR_PACKAGE_QUERY_URL" package-query || \
-		errorExit "Clone package-query failed"
-	[ ! -d ./package-query ] && errorExit "Clone package-query failed"
-	chown -R "$_USER":users ./package-query || \
-		errorExit "Change owner of package-query failed"
-	cd package-query || \
-		errorExit "Change directory to 'package-query' failed"
-	execAsUser "$_USER" makepkg -si --noconfirm --needed || \
-		errorExit "Install package-query failed"
-	cd ..
 
 	git clone "$AUR_HELPER_URL" "$AUR_HELPER" || errorExit "Clone $AUR_HELPER failed"
 	[ ! -d ./"$AUR_HELPER" ] && errorExit "Clone $AUR_HELPER failed"
